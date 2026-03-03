@@ -78,7 +78,7 @@ def extract_files_from_message(message: Message) -> List[Dict[str, Any]]:
 
     files = []
     for part in message.parts:
-        if hasattr(part, "type") and part.type == "file" and hasattr(part, "file"):
+        if hasattr(part, "kind") and part.kind == "file" and hasattr(part, "file"):
             files.append(part)
 
     return files
@@ -94,8 +94,8 @@ def a2a_part_to_adk_part(a2a_part: Dict[str, Any]) -> Optional[Part]:
     Returns:
         Converted ADK Part object or None if conversion not possible
     """
-    part_type = a2a_part.get("type")
-    if part_type == "file" and "file" in a2a_part:
+    part_kind = a2a_part.get("kind")
+    if part_kind == "file" and "file" in a2a_part:
         file_data = a2a_part["file"]
         if "bytes" in file_data:
             try:
@@ -107,7 +107,7 @@ def a2a_part_to_adk_part(a2a_part: Dict[str, Any]) -> Optional[Part]:
                 return Part(inline_data=Blob(mime_type=mime_type, data=file_bytes))
             except Exception:
                 return None
-    elif part_type == "text" and "text" in a2a_part:
+    elif part_kind == "text" and "text" in a2a_part:
         # For text parts, we could create a text blob if needed
         return None
 
@@ -140,7 +140,7 @@ def adk_part_to_a2a_part(
 
             # Convert to A2A FilePart dict
             return {
-                "type": "file",
+                "kind": "file",
                 "file": {
                     "name": filename,
                     "mimeType": mime_type,

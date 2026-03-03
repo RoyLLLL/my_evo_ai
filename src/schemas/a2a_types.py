@@ -50,11 +50,13 @@ class TaskState(str, Enum):
     COMPLETED = "completed"
     CANCELED = "canceled"
     FAILED = "failed"
+    REJECTED = "rejected"
+    AUTH_REQUIRED = "auth-required"
     UNKNOWN = "unknown"
 
 
 class TextPart(BaseModel):
-    type: Literal["text"] = "text"
+    kind: Literal["text"] = "text"
     text: str
     metadata: dict[str, Any] | None = None
 
@@ -77,13 +79,13 @@ class FileContent(BaseModel):
 
 
 class FilePart(BaseModel):
-    type: Literal["file"] = "file"
+    kind: Literal["file"] = "file"
     file: FileContent
     metadata: dict[str, Any] | None = None
 
 
 class DataPart(BaseModel):
-    type: Literal["data"] = "data"
+    kind: Literal["data"] = "data"
     data: dict[str, Any]
     metadata: dict[str, Any] | None = None
 
@@ -92,8 +94,13 @@ Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator="type")]
 
 
 class Message(BaseModel):
+    messageId: str = Field(default_factory=lambda: str(uuid4()))
     role: Literal["user", "agent"]
     parts: list[Part]
+    contextId: str | None = None
+    taskId: str | None = None
+    referenceTaskIds: list[str] | None = None
+    kind: Literal["message"] = "message"
     metadata: dict[str, Any] | None = None
 
 
@@ -108,34 +115,38 @@ class TaskStatus(BaseModel):
 
 
 class Artifact(BaseModel):
+    artifactId: str = Field(default_factory=lambda: str(uuid4()))
+    parts: list[Part]
     name: str | None = None
     description: str | None = None
-    parts: list[Part]
     metadata: dict[str, Any] | None = None
-    index: int = 0
-    append: bool | None = None
-    lastChunk: bool | None = None
 
 
 class Task(BaseModel):
     id: str
-    sessionId: str | None = None
+    contextId: str
     status: TaskStatus
-    artifacts: list[Artifact] | None = None
     history: list[Message] | None = None
+    artifacts: list[Artifact] | None = None
+    kind: Literal["task"] = "task"
     metadata: dict[str, Any] | None = None
 
 
 class TaskStatusUpdateEvent(BaseModel):
-    id: str
+    taskId: str
+    contextId: str
     status: TaskStatus
     final: bool = False
+    kind: Literal["status-update"] = "status-update"
     metadata: dict[str, Any] | None = None
 
 
 class TaskArtifactUpdateEvent(BaseModel):
-    id: str
+    taskId: str
+    contextId: str
     artifact: Artifact
+    final: bool = False
+    kind: Literal["artifact-update"] = "artifact-update"
     metadata: dict[str, Any] | None = None
 
 

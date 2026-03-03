@@ -61,12 +61,12 @@ export function TechnicalDetailsSection({ copyToClipboard }: TechnicalDetailsSec
                     method: "message/send",
                     params: {
                       id: "task-456",
-                      sessionId: "session-789",
+                      contextId: "session-789",
                       message: {
                         role: "user",
                         parts: [
                           {
-                            type: "text",
+                            kind: "text",
                             text: "Your question here"
                           }
                         ]
@@ -85,12 +85,12 @@ export function TechnicalDetailsSection({ copyToClipboard }: TechnicalDetailsSec
                     method: "message/send",
                     params: {
                       id: "task-456",
-                      sessionId: "session-789",
+                      contextId: "session-789",
                       message: {
                         role: "user",
                         parts: [
                           {
-                            type: "text",
+                            kind: "text",
                             text: "Your question here"
                           }
                         ]
@@ -136,7 +136,7 @@ x-api-key: YOUR_API_KEY`)}
                           role: "model",
                           parts: [
                             {
-                              type: "text",
+                              kind: "text",
                               text: "Complete agent response here."
                             }
                           ]
@@ -160,7 +160,7 @@ x-api-key: YOUR_API_KEY`)}
                           role: "model",
                           parts: [
                             {
-                              type: "text",
+                              kind: "text",
                               text: "Complete agent response here."
                             }
                           ]
@@ -196,12 +196,12 @@ x-api-key: YOUR_API_KEY`)}
                     method: "message/stream",
                     params: {
                       id: "task-456",
-                      sessionId: "session-789",
+                      contextId: "session-789",
                       message: {
                         role: "user",
                         parts: [
                           {
-                            type: "text",
+                            kind: "text",
                             text: "Your question here"
                           }
                         ]
@@ -220,12 +220,12 @@ x-api-key: YOUR_API_KEY`)}
                     method: "message/stream",
                     params: {
                       id: "task-456",
-                      sessionId: "session-789",
+                      contextId: "session-789",
                       message: {
                         role: "user",
                         parts: [
                           {
-                            type: "text",
+                            kind: "text",
                             text: "Your question here"
                           }
                         ]
@@ -267,7 +267,7 @@ Accept: text/event-stream`)}
               </p>
               <div className="relative">
                 <CodeBlock
-                  text={`data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"working","message":{"role":"agent","parts":[{"type":"text","text":"Processing..."}]},"timestamp":"2025-05-13T18:10:37.219Z"},"final":false}}
+                  text={`data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"working","message":{"role":"agent","parts":[{"kind":"text","text":"Processing..."}]},"timestamp":"2025-05-13T18:10:37.219Z"},"final":false}}
 
 data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"completed","timestamp":"2025-05-13T18:10:40.456Z"},"final":true}}
 `}
@@ -277,7 +277,7 @@ data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"stat
                   size="sm"
                   variant="ghost"
                   className="absolute top-2 right-2 text-white hover:bg-[#333]"
-                  onClick={() => copyToClipboard(`data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"working","message":{"role":"agent","parts":[{"type":"text","text":"Processing..."}]},"timestamp":"2025-05-13T18:10:37.219Z"},"final":false}}
+                  onClick={() => copyToClipboard(`data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"working","message":{"role":"agent","parts":[{"kind":"text","text":"Processing..."}]},"timestamp":"2025-05-13T18:10:37.219Z"},"final":false}}
 
 data: {"jsonrpc":"2.0","id":"call-123","result":{"id":"task-456","status":{"state":"completed","timestamp":"2025-05-13T18:10:40.456Z"},"final":true}}
 `)}

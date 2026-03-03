@@ -1,0 +1,42 @@
+A2A协议升级到v0.3.0 - 修改文件清单
+
+已修改的文件：
+
+1. D:\code\my_evo_ai\src\schemas\a2a_types.py
+   - 更新TaskState枚举，新增rejected和auth_required状态
+   - 将Part类型的type字段改为kind字段（TextPart, FilePart, DataPart）
+   - 更新Message类，添加messageId, contextId, taskId, referenceTaskIds, kind字段
+   - 更新Task类，将sessionId改为contextId，添加kind字段
+   - 更新Artifact类，添加artifactId字段
+   - 更新TaskStatusUpdateEvent和TaskArtifactUpdateEvent，添加taskId, contextId, kind字段
+
+2. D:\code\my_evo_ai\src\api\a2a_routes.py
+   - 将所有消息parts中的"type"字段改为"kind"字段
+   - 保持securitySchemes中的"type": "apiKey"不变（OpenAPI规范）
+
+3. D:\code\my_evo_ai\src\utils\a2a_utils.py
+   - 更新extract_files_from_message函数，将part.type改为part.kind
+   - 更新a2a_part_to_adk_part函数，将part_type改为part_kind
+   - 更新adk_part_to_a2a_part函数，将返回的"type"改为"kind"
+
+4. D:\code\my_evo_ai\src\utils\a2a_enhanced_client.py
+   - 将所有请求中的sessionId改为contextId
+   - 将所有消息parts中的"type"字段改为"kind"字段
+
+5. D:\code\my_evo_ai\frontend\app\documentation\components\TechnicalDetailsSection.tsx
+   - 更新所有示例代码中的"type"字段为"kind"
+   - 更新所有示例代码中的"sessionId"字段为"contextId"
+
+注意：
+- frontend中的HttpLabForm.tsx、StreamLabForm.tsx等组件仍使用sessionId作为UI参数名
+- 这些组件在实际发送请求时会将sessionId映射为contextId
+- 保持UI层面的sessionId命名是为了用户体验的连续性
+
+主要变化：
+- Part类型字段：type → kind
+- Task关联字段：sessionId → contextId
+- 新增TaskState状态：rejected, auth_required
+- Message对象增强：添加messageId, contextId, taskId, referenceTaskIds, kind
+- Task对象增强：添加kind字段
+- Artifact对象增强：添加artifactId字段
+- Event对象增强：添加taskId, contextId, kind字段

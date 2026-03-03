@@ -1,33 +1,4 @@
 """
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ @author: Davidson Gomes                                                      │
-│ @file: a2a_routes.py                                                         │
-│ Developed by: Davidson Gomes                                                 │
-│ Creation date: May 23, 2025                                                  │
-│ Contact: contato@evolution-api.com                                           │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ @copyright © Evolution API 2025. All rights reserved.                        │
-│ Licensed under the Apache License, Version 2.0                               │
-│                                                                              │
-│ You may not use this file except in compliance with the License.             │
-│ You may obtain a copy of the License at                                      │
-│                                                                              │
-│    http://www.apache.org/licenses/LICENSE-2.0                                │
-│                                                                              │
-│ Unless required by applicable law or agreed to in writing, software          │
-│ distributed under the License is distributed on an "AS IS" BASIS,            │
-│ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.     │
-│ See the License for the specific language governing permissions and          │
-│ limitations under the License.                                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ @important                                                                   │
-│ For any future changes to the code in this file, it is recommended to        │
-│ include, together with the modification, the information of the developer    │
-│ who changed it and the date of modification.                                 │
-└──────────────────────────────────────────────────────────────────────────────┘
-"""
-
-"""
 A2A Protocol Official Implementation
 
 100% compliant with the official A2A specification:
@@ -170,7 +141,7 @@ def create_task_response(
     artifacts = [
         {
             "artifactId": str(uuid.uuid4()),
-            "parts": [{"type": "text", "text": final_response}],
+            "parts": [{"kind": "text", "text": final_response}],
         }
     ]
 
@@ -194,7 +165,7 @@ def create_task_response(
             # Create A2A Message object
             a2a_message = {
                 "role": msg["role"],
-                "parts": [{"type": "text", "text": msg["content"]}],
+                "parts": [{"kind": "text", "text": msg["content"]}],
                 "messageId": msg.get("messageId"),
                 "taskId": task_id,
                 "contextId": context_id,
@@ -212,7 +183,7 @@ def create_task_response(
         logger.info(f"📝 Adding current user message to history")
         a2a_message = {
             "role": "user",
-            "parts": [{"type": "text", "text": current_user_message["content"]}],
+            "parts": [{"kind": "text", "text": current_user_message["content"]}],
             "messageId": current_user_message.get("messageId"),
             "taskId": task_id,
             "contextId": context_id,
@@ -1161,7 +1132,7 @@ async def get_conversation_history(
                         "description": f"Message from {msg['role']}",
                         "parts": [
                             {
-                                "type": "text",
+                                "kind": "text",
                                 "text": msg["content"],
                                 "metadata": {
                                     "role": msg["role"],
@@ -1182,7 +1153,7 @@ async def get_conversation_history(
                     "description": f"Conversation history summary ({len(history)} total messages)",
                     "parts": [
                         {
-                            "type": "text",
+                            "kind": "text",
                             "text": f"Conversation with {len(history)} messages between user and agent.",
                             "metadata": {
                                 "total_messages": len(history),

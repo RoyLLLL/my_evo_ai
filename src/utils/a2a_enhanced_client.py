@@ -333,7 +333,7 @@ class EnhancedA2AClient:
 
         # Create message in custom format
         custom_message = CustomMessage(
-            role="user", parts=[{"type": "text", "text": message}], metadata=metadata
+            role="user", parts=[{"kind": "text", "text": message}], metadata=metadata
         )
 
         # Create request using correct method from A2A specification
@@ -343,7 +343,7 @@ class EnhancedA2AClient:
             "method": "tasks/send",  # Correct method from A2A specification
             "params": {
                 "id": str(uuid4()),
-                "sessionId": session_id,
+                "contextId": session_id,
                 "message": (
                     custom_message.model_dump()
                     if hasattr(custom_message, "model_dump")
@@ -385,7 +385,7 @@ class EnhancedA2AClient:
                     "role": "user",
                     "parts": [
                         {
-                            "type": "text",  # Specification uses "type" not "kind"
+                            "kind": "text",  # A2A v0.3.0 uses "kind" not "type"
                             "text": message,
                         }
                     ],
@@ -450,7 +450,7 @@ class EnhancedA2AClient:
 
         # Create message in custom format
         custom_message = CustomMessage(
-            role="user", parts=[{"type": "text", "text": message}], metadata=metadata
+            role="user", parts=[{"kind": "text", "text": message}], metadata=metadata
         )
 
         # Our custom implementation uses Task API (tasks/subscribe)
@@ -460,7 +460,7 @@ class EnhancedA2AClient:
             "method": "tasks/subscribe",  # Task API para streaming custom
             "params": {
                 "id": str(uuid4()),
-                "sessionId": session_id,
+                "contextId": session_id,
                 "message": (
                     custom_message.model_dump()
                     if hasattr(custom_message, "model_dump")
@@ -508,7 +508,7 @@ class EnhancedA2AClient:
                     "role": "user",
                     "parts": [
                         {
-                            "type": "text",  # Specification uses "type" not "kind"
+                            "kind": "text",  # A2A v0.3.0 uses "kind" not "type"
                             "text": message,
                         }
                     ],

@@ -52,6 +52,7 @@ import src.api.mcp_server_routes
 import src.api.tool_routes
 import src.api.client_routes
 import src.api.a2a_routes
+import src.api.super_chat_routes
 
 # Add the root directory to PYTHONPATH
 root_dir = Path(__file__).parent.parent
@@ -103,6 +104,7 @@ mcp_server_router = src.api.mcp_server_routes.router
 tool_router = src.api.tool_routes.router
 client_router = src.api.client_routes.router
 a2a_router = src.api.a2a_routes.router
+super_chat_router = src.api.super_chat_routes.router
 
 # Include routes
 app.include_router(auth_router, prefix=API_PREFIX)
@@ -114,6 +116,7 @@ app.include_router(chat_router, prefix=API_PREFIX)
 app.include_router(session_router, prefix=API_PREFIX)
 app.include_router(agent_router, prefix=API_PREFIX)
 app.include_router(a2a_router, prefix=API_PREFIX)
+app.include_router(super_chat_router, prefix=API_PREFIX)
 
 # Inicializa o OpenTelemetry para Langfuse
 init_otel()

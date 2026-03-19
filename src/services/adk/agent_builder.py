@@ -41,6 +41,8 @@ from src.services.adk.mcp_service import MCPService
 from src.services.adk.custom_agents.a2a_agent import A2ACustomAgent
 from src.services.adk.custom_agents.workflow_agent import WorkflowAgent
 from src.services.adk.custom_agents.task_agent import TaskAgent
+from src.services.adk.super_agent.super_agent import build_super_agent
+from src.services.adk.super_agent.event_bus import EventBus
 from src.services.apikey_service import get_decrypted_api_key
 from sqlalchemy.orm import Session
 from contextlib import AsyncExitStack
@@ -205,6 +207,8 @@ class AgentBuilder:
                 sub_agent, exit_stack = await self.build_workflow_agent(agent)
             elif agent.type == "task":
                 sub_agent, exit_stack = await self.build_task_agent(agent)
+            elif agent.type == "super":
+                sub_agent, exit_stack = await self._build_super_agent(agent)
             elif agent.type == "sequential":
                 sub_agent, exit_stack = await self.build_composite_agent(agent)
             elif agent.type == "parallel":
@@ -454,5 +458,95 @@ class AgentBuilder:
             return await self.build_workflow_agent(root_agent)
         elif root_agent.type == "task":
             return await self.build_task_agent(root_agent)
+        elif root_agent.type == "super":
+            return await self._build_super_agent(root_agent)
         else:
             return await self.build_composite_agent(root_agent)
+
+    async def _build_super_agent(
+        self, root_agent, session_id: str = ""
+    ) -> Tuple[LlmAgent, Optional[AsyncExitStack]]:
+        """Build a SuperAgent with event bus, skills, and sub-agents."""
+        logger.info(f"Creating Super agent: {root_agent.name}")
+
+        agent_config = root_agent.config or {}
+
+        # Resolve API key
+        api_key = None
+        if hasattr(root_agent, "api_key_id") and root_agent.api_key_id:
+            api_key = get_decrypted_api_key(self.db, root_agent.api_key_id)
+            if not api_key:
+                raise ValueError(f"API key with ID {root_agent.api_key_id} not found or inactive")
+        else:
+            config_api_key = agent_config.get("api_key")
+            if config_api_key:
+                try:
+                    import uuid as _uuid
+                    key_id = _uuid.UUID(config_api_key)
+                    decrypted = get_decrypted_api_key(self.db, key_id)
+                    api_key = decrypted if decrypted else config_api_key
+                except (ValueError, TypeError):
+                    api_key = config_api_key
+            else:
+                raise ValueError(f"Agent {root_agent.name} does not have a configured API key")
+
+        # Get sub-agents
+        sub_agents = []
+        if agent_config.get("sub_agents"):
+            sub_agents_with_stacks = await self._get_sub_agents(agent_config["sub_agents"])
+            sub_agents = [agent for agent, _ in sub_agents_with_stacks]
+
+        # Get extra tools (custom + MCP + agent_tools)
+        extra_tools = []
+
+        custom_tools = self.custom_tool_builder.build_tools(agent_config)
+        extra_tools.extend(custom_tools)
+
+        mcp_exit_stack = None
+        if agent_config.get("mcp_servers") or agent_config.get("custom_mcp_servers"):
+            mcp_tools, mcp_exit_stack = await self.mcp_service.build_tools(agent_config, self.db)
+            extra_tools.extend(mcp_tools)
+
+        agent_tools = await self._agent_tools_builder(root_agent)
+        extra_tools.extend(agent_tools)
+
+        if agent_config.get("load_memory"):
+            extra_tools.append(load_memory)
+
+        # Skills config
+        skills = agent_config.get("skills", ["todo", "research"])
+
+        # Format instruction
+        now = datetime.now()
+        instruction = root_agent.instruction or ""
+        if instruction:
+            instruction = instruction.format(
+                current_datetime=now.strftime("%d/%m/%Y %H:%M"),
+                current_day_of_week=now.strftime("%A"),
+                current_date_iso=now.strftime("%Y-%m-%d"),
+                current_time=now.strftime("%H:%M"),
+            )
+        if root_agent.role:
+            instruction = f"<agent_role>{root_agent.role}</agent_role>\n\n{instruction}"
+        if root_agent.goal:
+            instruction = f"<agent_goal>{root_agent.goal}</agent_goal>\n\n{instruction}"
+
+        # Build the super agent
+        agent, event_bus, skill_manager = build_super_agent(
+            name=root_agent.name,
+            model=root_agent.model,
+            api_key=api_key,
+            instruction=instruction,
+            description=root_agent.description or f"Super Agent: {root_agent.name}",
+            skills=skills,
+            sub_agents=sub_agents,
+            extra_tools=extra_tools,
+            session_id=session_id,
+        )
+
+        logger.info(
+            f"Super agent created: {root_agent.name} with skills={skills}, "
+            f"sub_agents={len(sub_agents)}, extra_tools={len(extra_tools)}"
+        )
+
+        return agent, mcp_exit_stack

@@ -36,6 +36,8 @@ from src.utils.logger import setup_logger
 from src.core.exceptions import AgentNotFoundError, InternalServerError
 from src.services.agent_service import get_agent
 from src.services.adk.agent_builder import AgentBuilder
+from src.services.adk.super_agent.super_agent import SuperAgentSession, build_super_agent
+from src.services.adk.super_agent.event_bus import EventBus
 from sqlalchemy.orm import Session
 from typing import Optional, AsyncGenerator
 import asyncio
@@ -533,3 +535,84 @@ async def run_agent_stream(
                 raise InternalServerError(str(e))
     finally:
         span.end()
+
+
+async def create_super_agent_session(
+    agent_id: str,
+    external_id: str,
+    session_service: DatabaseSessionService,
+    artifacts_service: InMemoryArtifactService,
+    memory_service: InMemoryMemoryService,
+    db: Session,
+) -> tuple[SuperAgentSession, Optional[object]]:
+    """
+    Create a persistent SuperAgentSession for WebSocket human-in-the-loop interaction.
+    The session holds the Runner + EventBus alive across multiple turns.
+
+    Returns:
+        (super_session, exit_stack) - caller must close exit_stack when done
+    """
+    logger.info(f"Creating SuperAgentSession for agent {agent_id}, user {external_id}")
+
+    get_root_agent = get_agent(db, agent_id)
+    if get_root_agent is None:
+        raise AgentNotFoundError(f"Agent with ID {agent_id} not found")
+
+    if get_root_agent.type != "super":
+        raise ValueError(f"Agent {agent_id} is type '{get_root_agent.type}', expected 'super'")
+
+    adk_session_id = f"{external_id}_{agent_id}"
+
+    # Build the super agent via AgentBuilder
+    agent_builder = AgentBuilder(db)
+    root_agent, exit_stack = await agent_builder.build_agent(get_root_agent)
+
+    # Create ADK Runner
+    runner = Runner(
+        agent=root_agent,
+        app_name=agent_id,
+        session_service=session_service,
+        artifact_service=artifacts_service,
+        memory_service=memory_service,
+    )
+
+    # Ensure session exists
+    session = session_service.get_session(
+        app_name=agent_id,
+        user_id=external_id,
+        session_id=adk_session_id,
+    )
+    if session is None:
+        session = session_service.create_session(
+            app_name=agent_id,
+            user_id=external_id,
+            session_id=adk_session_id,
+        )
+
+    # Get the event_bus from the agent builder's super agent build
+    # We need to reconstruct it since AgentBuilder doesn't expose it
+    event_bus = EventBus()
+
+    # Load existing events from session state if available
+    if session.state and session.state.get("super_events"):
+        event_bus.load_events(adk_session_id, session.state["super_events"])
+
+    # Get skill manager - reconstruct from config
+    from src.services.adk.super_agent.skill_manager import SkillManager
+    skill_manager = SkillManager(event_bus)
+    agent_config = get_root_agent.config or {}
+    skills = agent_config.get("skills", ["todo", "research"])
+    skill_manager.register_all(skills)
+
+    super_session = SuperAgentSession(
+        agent=root_agent,
+        event_bus=event_bus,
+        skill_manager=skill_manager,
+        runner=runner,
+        session_id=adk_session_id,
+        user_id=external_id,
+        agent_id=agent_id,
+    )
+
+    logger.info(f"SuperAgentSession created: {adk_session_id}")
+    return super_session, exit_stack

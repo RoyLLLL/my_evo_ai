@@ -278,3 +278,40 @@ class AgentConfig(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SuperConfig(BaseModel):
+    """Configuration for super agents (event-driven multi-agent orchestrator)"""
+
+    api_key: str = Field(
+        default_factory=generate_api_key,
+        description="API key for the super agent",
+    )
+    skills: List[str] = Field(
+        default_factory=lambda: ["todo", "research"],
+        description="List of skill names to enable (todo, research)",
+    )
+    sub_agents: Optional[List[UUID]] = Field(
+        default=None, description="List of IDs of sub-agents"
+    )
+    agent_tools: Optional[List[UUID]] = Field(
+        default=None, description="List of IDs of sub-agents as tools"
+    )
+    tools: Optional[List[ToolConfig]] = Field(
+        default=None, description="List of available tools"
+    )
+    custom_tools: Optional[CustomTools] = Field(
+        default=None, description="Custom tools"
+    )
+    mcp_servers: Optional[List[MCPServerConfig]] = Field(
+        default=None, description="List of MCP servers"
+    )
+    custom_mcp_servers: Optional[List[CustomMCPServerConfig]] = Field(
+        default=None, description="List of custom MCP servers"
+    )
+    load_memory: Optional[bool] = Field(
+        default=False, description="Whether to load memory tool"
+    )
+
+    class Config:
+        from_attributes = True

@@ -44,6 +44,7 @@ from src.services.adk.custom_agents.task_agent import TaskAgent
 from src.services.adk.super_agent.super_agent import build_super_agent
 from src.services.adk.super_agent.event_bus import EventBus
 from src.services.apikey_service import get_decrypted_api_key
+from src.config.settings import settings
 from sqlalchemy.orm import Session
 from contextlib import AsyncExitStack
 from google.adk.tools import load_memory
@@ -134,48 +135,21 @@ class AgentBuilder:
                 + "\n\n<memory_instructions>ALWAYS use the load_memory tool to retrieve knowledge for your context</memory_instructions>\n\n"
             )
 
-        # Get API key from api_key_id
-        api_key = None
+        api_key = settings.DEEPSEEK_API_KEY
+        # Resolve model: fall back to DeepSeek default if not set
+        model_name = settings.DEEPSEEK_DEFAULT_MODEL
 
-        # Get API key from api_key_id
-        if hasattr(agent, "api_key_id") and agent.api_key_id:
-            decrypted_key = get_decrypted_api_key(self.db, agent.api_key_id)
-            if decrypted_key:
-                logger.info(f"Using stored API key for agent {agent.name}")
-                api_key = decrypted_key
-            else:
-                logger.error(f"Stored API key not found for agent {agent.name}")
-                raise ValueError(
-                    f"API key with ID {agent.api_key_id} not found or inactive"
-                )
-        else:
-            # Check if there is an API key in the config (temporary field)
-            config_api_key = agent.config.get("api_key") if agent.config else None
-            if config_api_key:
-                logger.info(f"Using config API key for agent {agent.name}")
-                # Check if it is a UUID of a stored key
-                try:
-                    key_id = uuid.UUID(config_api_key)
-                    decrypted_key = get_decrypted_api_key(self.db, key_id)
-                    if decrypted_key:
-                        logger.info("Config API key is a valid reference")
-                        api_key = decrypted_key
-                    else:
-                        # Use the key directly
-                        api_key = config_api_key
-                except (ValueError, TypeError):
-                    # It is not a UUID, use directly
-                    api_key = config_api_key
-            else:
-                logger.error(f"No API key configured for agent {agent.name}")
-                raise ValueError(
-                    f"Agent {agent.name} does not have a configured API key"
-                )
+        # Build LiteLlm kwargs; pass api_base for DeepSeek default
+        litellm_kwargs = {"model": model_name, "api_key": api_key}
+        if not (agent.model or "").strip() or (
+            api_key == settings.DEEPSEEK_API_KEY and settings.DEEPSEEK_BASE_URL
+        ):
+            litellm_kwargs["api_base"] = settings.DEEPSEEK_BASE_URL
 
         return (
             LlmAgent(
                 name=agent.name,
-                model=LiteLlm(model=agent.model, api_key=api_key),
+                model=LiteLlm(**litellm_kwargs),
                 instruction=formatted_prompt,
                 description=agent.description,
                 tools=all_tools,
@@ -487,6 +461,9 @@ class AgentBuilder:
                     api_key = decrypted if decrypted else config_api_key
                 except (ValueError, TypeError):
                     api_key = config_api_key
+            elif settings.DEEPSEEK_API_KEY:
+                logger.info(f"Using default DeepSeek API key for super agent {root_agent.name}")
+                api_key = settings.DEEPSEEK_API_KEY
             else:
                 raise ValueError(f"Agent {root_agent.name} does not have a configured API key")
 
@@ -531,11 +508,18 @@ class AgentBuilder:
         if root_agent.goal:
             instruction = f"<agent_goal>{root_agent.goal}</agent_goal>\n\n{instruction}"
 
+        # Resolve model and api_base for super agent
+        super_model = (root_agent.model or "").strip() or settings.DEEPSEEK_DEFAULT_MODEL
+        super_api_base = None
+        if not (root_agent.model or "").strip() or api_key == settings.DEEPSEEK_API_KEY:
+            super_api_base = settings.DEEPSEEK_BASE_URL or None
+
         # Build the super agent
         agent, event_bus, skill_manager = build_super_agent(
             name=root_agent.name,
-            model=root_agent.model,
+            model=super_model,
             api_key=api_key,
+            api_base=super_api_base,
             instruction=instruction,
             description=root_agent.description or f"Super Agent: {root_agent.name}",
             skills=skills,

@@ -79,6 +79,7 @@ def build_super_agent(
     extra_tools: Optional[List] = None,
     session_id: str = "",
     event_bus: Optional[EventBus] = None,
+    api_base: Optional[str] = None,
 ) -> tuple[LlmAgent, EventBus, SkillManager]:
     """
     Build a SuperAgent as an LlmAgent with skill tools injected.
@@ -105,9 +106,13 @@ def build_super_agent(
     else:
         full_instruction = f"{base_prompt}\n\n{skill_prompt}"
 
+    litellm_kwargs = {"model": model, "api_key": api_key}
+    if api_base:
+        litellm_kwargs["api_base"] = api_base
+
     agent = LlmAgent(
         name=name,
-        model=LiteLlm(model=model, api_key=api_key),
+        model=LiteLlm(**litellm_kwargs),
         instruction=full_instruction,
         description=description or f"Super Agent: {name}",
         tools=all_tools,

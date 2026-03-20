@@ -90,7 +90,7 @@ class DataPart(BaseModel):
     metadata: dict[str, Any] | None = None
 
 
-Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator="type")]
+Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator="kind")]
 
 
 class Message(BaseModel):

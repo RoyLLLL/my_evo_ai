@@ -51,7 +51,6 @@ from src.services import (
 )
 from src.schemas.chat import ChatRequest, ChatResponse, ErrorResponse, FileData
 from src.services.adk.agent_runner import run_agent as run_agent_adk, run_agent_stream
-from src.services.crewai.agent_runner import run_agent as run_agent_crewai
 from src.core.exceptions import AgentNotFoundError
 from src.services.service_providers import (
     session_service,
@@ -291,16 +290,6 @@ async def chat(
                 db,
                 files=request.files,
             )
-        elif settings.AI_ENGINE == "crewai":
-            final_response = await run_agent_crewai(
-                agent_id,
-                external_id,
-                request.message,
-                session_service,
-                db,
-                files=request.files,
-            )
-
         return {
             "response": final_response["final_response"],
             "message_history": final_response["message_history"],

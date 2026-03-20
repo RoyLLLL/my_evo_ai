@@ -130,3 +130,19 @@ def read_root():
         "version": settings.API_VERSION,
         "auth": "To access the API, use JWT authentication via '/api/v1/auth/login'",
     }
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # 解决 Windows + asyncio 兼容问题（很关键）
+    if sys.platform.startswith("win"):
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    uvicorn.run(
+        "main:app",          # 如果 main.py 在 src/ 下，要改成 src.main:app
+        host="0.0.0.0",
+        port=8000,
+        reload=True,         # 热重载（开发用）
+        log_level="info"
+    )

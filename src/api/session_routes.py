@@ -28,7 +28,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from typing import List, Optional, Dict, Any
 import uuid
@@ -65,7 +65,7 @@ router = APIRouter(
 @router.get("/client/{client_id}")
 async def get_client_sessions(
     client_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Verify if the user has access to this client's data
@@ -76,7 +76,7 @@ async def get_client_sessions(
 @router.get("/agent/{agent_id}")
 async def get_agent_sessions(
     agent_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
     skip: int = 0,
     limit: int = 100,
@@ -97,7 +97,7 @@ async def get_agent_sessions(
 @router.get("/{session_id}", response_model=Adk_Session)
 async def get_session(
     session_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Get the session
@@ -122,7 +122,7 @@ async def get_session(
 )
 async def get_agent_messages(
     session_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -307,7 +307,7 @@ async def get_agent_messages(
 )
 async def remove_session(
     session_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Get the session

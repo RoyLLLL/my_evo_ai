@@ -28,7 +28,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from typing import List
 import uuid
@@ -58,7 +58,7 @@ router = APIRouter(
 @router.post("/", response_model=Tool, status_code=status.HTTP_201_CREATED)
 async def create_tool(
     tool: ToolCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can create tools
@@ -71,7 +71,7 @@ async def create_tool(
 async def read_tools(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # All authenticated users can list tools
@@ -81,7 +81,7 @@ async def read_tools(
 @router.get("/{tool_id}", response_model=Tool)
 async def read_tool(
     tool_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # All authenticated users can view tool details
@@ -97,7 +97,7 @@ async def read_tool(
 async def update_tool(
     tool_id: uuid.UUID,
     tool: ToolCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can update tools
@@ -114,7 +114,7 @@ async def update_tool(
 @router.delete("/{tool_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tool(
     tool_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can delete tools

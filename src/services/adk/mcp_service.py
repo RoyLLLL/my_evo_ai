@@ -30,14 +30,13 @@
 from typing import Any, Dict, List, Optional, Tuple
 from google.adk.tools.mcp_tool.mcp_toolset import (
     MCPToolset,
-    StdioServerParameters,
-    SseServerParams,
+    StdioServerParameters
 )
 from contextlib import AsyncExitStack
 import os
 from src.utils.logger import setup_logger
 from src.services.mcp_server_service import get_mcp_server
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = setup_logger(__name__)
 
@@ -53,27 +52,23 @@ class MCPService:
         """Connect to a specific MCP server and return its tools."""
         try:
             # Determines the type of server (local or remote)
-            if "url" in server_config:
-                # Remote server (SSE)
-                connection_params = SseServerParams(
-                    url=server_config["url"], headers=server_config.get("headers", {})
-                )
-            else:
-                # Local server (Stdio)
-                command = server_config.get("command", "npx")
-                args = server_config.get("args", [])
 
-                # Adds environment variables if specified
-                env = server_config.get("env", {})
-                if env:
-                    for key, value in env.items():
-                        os.environ[key] = value
 
-                connection_params = StdioServerParameters(
-                    command=command, args=args, env=env
-                )
+            # Local server (Stdio)
+            command = server_config.get("command", "npx")
+            args = server_config.get("args", [])
 
-            tools, exit_stack = await MCPToolset.from_server(
+            # Adds environment variables if specified
+            env = server_config.get("env", {})
+            if env:
+                for key, value in env.items():
+                    os.environ[key] = value
+
+            connection_params = StdioServerParameters(
+                command=command, args=args, env=env
+            )
+
+            tools, exit_stack = MCPToolset(
                 connection_params=connection_params
             )
 
@@ -119,7 +114,7 @@ class MCPService:
         return filtered_tools
 
     async def build_tools(
-        self, mcp_config: Dict[str, Any], db: Session
+        self, mcp_config: Dict[str, Any], db: AsyncSession
     ) -> Tuple[List[Any], AsyncExitStack]:
         """Builds a list of tools from multiple MCP servers."""
         self.tools = []

@@ -28,7 +28,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from src.models.models import User
 from src.schemas.user import (
@@ -69,7 +69,7 @@ router = APIRouter(
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """
     Register a new user (client) in the system
 
@@ -97,7 +97,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 )
 async def register_admin(
     user_data: UserCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
     """
@@ -127,7 +127,7 @@ async def register_admin(
 
 
 @router.get("/verify-email/{token}", response_model=MessageResponse)
-async def verify_user_email(token: str, db: Session = Depends(get_db)):
+async def verify_user_email(token: str, db: AsyncSession = Depends(get_db)):
     """
     Verify user email using the provided token
 
@@ -152,7 +152,7 @@ async def verify_user_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/resend-verification", response_model=MessageResponse)
 async def resend_verification_email(
-    email_data: ForgotPassword, db: Session = Depends(get_db)
+    email_data: ForgotPassword, db: AsyncSession = Depends(get_db)
 ):
     """
     Resend verification email to the user
@@ -177,7 +177,7 @@ async def resend_verification_email(
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login_for_access_token(form_data: UserLogin, db: Session = Depends(get_db)):
+async def login_for_access_token(form_data: UserLogin, db: AsyncSession = Depends(get_db)):
     """
     Perform login and return a JWT access token
 
@@ -229,7 +229,7 @@ async def login_for_access_token(form_data: UserLogin, db: Session = Depends(get
 
 @router.post("/forgot-password", response_model=MessageResponse)
 async def forgot_user_password(
-    email_data: ForgotPassword, db: Session = Depends(get_db)
+    email_data: ForgotPassword, db: AsyncSession = Depends(get_db)
 ):
     """
     Initiate the password recovery process
@@ -252,7 +252,7 @@ async def forgot_user_password(
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-async def reset_user_password(reset_data: PasswordReset, db: Session = Depends(get_db)):
+async def reset_user_password(reset_data: PasswordReset, db: AsyncSession = Depends(get_db)):
     """
     Reset user password using the provided token
 
@@ -277,7 +277,7 @@ async def reset_user_password(reset_data: PasswordReset, db: Session = Depends(g
 
 @router.post("/me", response_model=UserResponse)
 async def get_current_user(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Get the authenticated user's data
@@ -298,7 +298,7 @@ async def get_current_user(
 @router.post("/change-password", response_model=MessageResponse)
 async def change_user_password(
     password_data: ChangePassword,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """

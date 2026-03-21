@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from src.models.models import Client, User
@@ -41,7 +41,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_client(db: Session, client_id: uuid.UUID) -> Optional[Client]:
+def get_client(db: AsyncSession, client_id: uuid.UUID) -> Optional[Client]:
     """Search for a client by ID"""
     try:
         client = db.query(Client).filter(Client.id == client_id).first()
@@ -57,7 +57,7 @@ def get_client(db: Session, client_id: uuid.UUID) -> Optional[Client]:
         )
 
 
-def get_clients(db: Session, skip: int = 0, limit: int = 100) -> List[Client]:
+def get_clients(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Client]:
     """Search for all clients with pagination"""
     try:
         return db.query(Client).offset(skip).limit(limit).all()
@@ -69,7 +69,7 @@ def get_clients(db: Session, skip: int = 0, limit: int = 100) -> List[Client]:
         )
 
 
-def create_client(db: Session, client: ClientCreate) -> Client:
+def create_client(db: AsyncSession, client: ClientCreate) -> Client:
     """Create a new client"""
     try:
         db_client = Client(**client.model_dump())
@@ -88,7 +88,7 @@ def create_client(db: Session, client: ClientCreate) -> Client:
 
 
 def update_client(
-    db: Session, client_id: uuid.UUID, client: ClientCreate
+    db: AsyncSession, client_id: uuid.UUID, client: ClientCreate
 ) -> Optional[Client]:
     """Updates an existing client"""
     try:
@@ -112,7 +112,7 @@ def update_client(
         )
 
 
-def delete_client(db: Session, client_id: uuid.UUID) -> bool:
+def delete_client(db: AsyncSession, client_id: uuid.UUID) -> bool:
     """Removes a client"""
     try:
         db_client = get_client(db, client_id)
@@ -133,7 +133,7 @@ def delete_client(db: Session, client_id: uuid.UUID) -> bool:
 
 
 def create_client_with_user(
-    db: Session, client_data: ClientCreate, user_data: UserCreate
+    db: AsyncSession, client_data: ClientCreate, user_data: UserCreate
 ) -> Tuple[Optional[Client], str]:
     """
     Creates a new client with an associated user
@@ -179,7 +179,7 @@ def create_client_with_user(
         return None, f"Unexpected error: {str(e)}"
 
 
-def get_client_user(db: Session, client_id: uuid.UUID) -> Optional[User]:
+def get_client_user(db: AsyncSession, client_id: uuid.UUID) -> Optional[User]:
     """
     Search for the user associated with a client
 

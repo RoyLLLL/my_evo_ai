@@ -20,7 +20,7 @@ import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
 from src.core.jwt_middleware import get_jwt_token_ws, verify_user_client
@@ -46,7 +46,7 @@ async def websocket_super_chat(
     websocket: WebSocket,
     agent_id: str,
     external_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     WebSocket endpoint for SuperAgent with human-in-the-loop.

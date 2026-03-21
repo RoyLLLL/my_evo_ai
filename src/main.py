@@ -29,6 +29,7 @@
 
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,7 +91,14 @@ POSTGRES_CONNECTION_STRING = os.getenv(
 )
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(e)
+
 
 API_PREFIX = "/api/v1"
 

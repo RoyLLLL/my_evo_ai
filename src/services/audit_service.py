@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from src.models.models import AuditLog
 from datetime import datetime
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_audit_log(
-    db: Session,
+    db: AsyncSession,
     user_id: Optional[uuid.UUID],
     action: str,
     resource_type: str,
@@ -109,7 +109,7 @@ def create_audit_log(
 
 
 def get_audit_logs(
-    db: Session,
+    db: AsyncSession,
     skip: int = 0,
     limit: int = 100,
     user_id: Optional[uuid.UUID] = None,

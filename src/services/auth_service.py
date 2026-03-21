@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.models import User
 from src.schemas.user import TokenData
 from src.services.user_service import get_user_by_email
@@ -47,7 +47,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     Get the current user from the JWT token

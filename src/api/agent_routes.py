@@ -38,7 +38,7 @@ from fastapi import (
     UploadFile,
     Form,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from typing import List, Dict, Any, Optional, Union
 import uuid
@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 
 
 async def format_agent_tools(
-    mcp_servers: List[Dict[str, Any]], db: Session
+    mcp_servers: List[Dict[str, Any]], db: AsyncSession
 ) -> List[Dict[str, Any]]:
     """Format MCP server tools for agent card skills"""
     formatted_tools = []
@@ -111,7 +111,7 @@ router = APIRouter(
 @router.post("/apikeys", response_model=ApiKey, status_code=status.HTTP_201_CREATED)
 async def create_api_key(
     key: ApiKeyCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Create a new API key"""
@@ -133,7 +133,7 @@ async def read_api_keys(
         "name", description="Field to sort: name, provider, created_at"
     ),
     sort_direction: str = Query("asc", description="Sort direction: asc, desc"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """List API keys for a client"""
@@ -150,7 +150,7 @@ async def read_api_keys(
 async def read_api_key(
     key_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Get details of a specific API key"""
@@ -178,7 +178,7 @@ async def update_api_key(
     key_id: uuid.UUID,
     key_data: ApiKeyUpdate,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Update an API key"""
@@ -215,7 +215,7 @@ async def update_api_key(
 async def delete_api_key(
     key_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Deactivate an API key (soft delete)"""
@@ -249,7 +249,7 @@ async def delete_api_key(
 )
 async def create_folder(
     folder: AgentFolderCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Create a new folder to organize agents"""
@@ -266,7 +266,7 @@ async def read_folders(
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """List agent folders for a client"""
@@ -280,7 +280,7 @@ async def read_folders(
 async def read_folder(
     folder_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Get details of a specific folder"""
@@ -308,7 +308,7 @@ async def update_folder(
     folder_id: uuid.UUID,
     folder_data: AgentFolderUpdate,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Update an agent folder"""
@@ -340,7 +340,7 @@ async def update_folder(
 async def delete_folder(
     folder_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Remove an agent folder"""
@@ -374,7 +374,7 @@ async def read_folder_agents(
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """List agents in a specific folder"""
@@ -411,7 +411,7 @@ async def assign_agent_to_folder(
     agent_id: uuid.UUID,
     folder_id: Optional[uuid.UUID] = None,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Assign an agent to a folder or remove from the current folder (if folder_id=None)"""
@@ -464,7 +464,7 @@ async def read_agents(
     folder_id: Optional[uuid.UUID] = Query(None, description="Filter by folder"),
     sort_by: str = Query("name", description="Field to sort: name, created_at"),
     sort_direction: str = Query("asc", description="Sort direction: asc, desc"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Verify if the user has access to this client's data
@@ -485,7 +485,7 @@ async def read_agents(
 @router.post("/", response_model=Agent, status_code=status.HTTP_201_CREATED)
 async def create_agent(
     agent: AgentCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Verify if the user has access to the agent's client
@@ -503,7 +503,7 @@ async def create_agent(
 async def read_agent(
     agent_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     db_agent = agent_service.get_agent(db, agent_id)
@@ -525,7 +525,7 @@ async def read_agent(
 async def update_agent(
     agent_id: uuid.UUID,
     agent_data: Dict[str, Any],
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Get the current agent
@@ -554,7 +554,7 @@ async def update_agent(
 @router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agent(
     agent_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Get the agent
@@ -577,7 +577,7 @@ async def delete_agent(
 async def share_agent(
     agent_id: uuid.UUID,
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Returns the agent's API key for sharing"""
@@ -611,7 +611,7 @@ async def share_agent(
 async def get_shared_agent(
     agent_id: uuid.UUID,
     api_key: str = Header(..., alias="x-api-key"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get agent details using only API key authentication"""
     # Verify if the agent exists
@@ -639,7 +639,7 @@ async def import_agents(
     file: UploadFile = File(...),
     folder_id: Optional[str] = Form(None),
     x_client_id: uuid.UUID = Header(..., alias="x-client-id"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """Import one or more agents from a JSON file"""

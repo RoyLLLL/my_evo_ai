@@ -38,7 +38,7 @@ from src.services.agent_service import get_agent
 from src.services.adk.agent_builder import AgentBuilder
 from src.services.adk.super_agent.super_agent import SuperAgentSession, build_super_agent
 from src.services.adk.super_agent.event_bus import EventBus
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, AsyncGenerator
 import asyncio
 import json
@@ -56,7 +56,7 @@ async def run_agent(
     session_service: DatabaseSessionService,
     artifacts_service: InMemoryArtifactService,
     memory_service: InMemoryMemoryService,
-    db: Session,
+    db: AsyncSession,
     session_id: Optional[str] = None,
     timeout: float = 60.0,
     files: Optional[list] = None,
@@ -320,7 +320,7 @@ async def run_agent_stream(
     session_service: DatabaseSessionService,
     artifacts_service: InMemoryArtifactService,
     memory_service: InMemoryMemoryService,
-    db: Session,
+    db: AsyncSession,
     session_id: Optional[str] = None,
     files: Optional[list] = None,
 ) -> AsyncGenerator[str, None]:
@@ -545,7 +545,7 @@ async def create_super_agent_session(
     session_service: DatabaseSessionService,
     artifacts_service: InMemoryArtifactService,
     memory_service: InMemoryMemoryService,
-    db: Session,
+    db: AsyncSession,
 ) -> tuple[SuperAgentSession, Optional[object]]:
     """
     Create a persistent SuperAgentSession for WebSocket human-in-the-loop interaction.

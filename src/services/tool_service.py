@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from src.models.models import Tool
@@ -39,7 +39,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_tool(db: Session, tool_id: uuid.UUID) -> Optional[Tool]:
+def get_tool(db: AsyncSession, tool_id: uuid.UUID) -> Optional[Tool]:
     """Search for a tool by ID"""
     try:
         tool = db.query(Tool).filter(Tool.id == tool_id).first()
@@ -55,7 +55,7 @@ def get_tool(db: Session, tool_id: uuid.UUID) -> Optional[Tool]:
         )
 
 
-def get_tools(db: Session, skip: int = 0, limit: int = 100) -> List[Tool]:
+def get_tools(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Tool]:
     """Search for all tools with pagination"""
     try:
         return db.query(Tool).offset(skip).limit(limit).all()
@@ -67,7 +67,7 @@ def get_tools(db: Session, skip: int = 0, limit: int = 100) -> List[Tool]:
         )
 
 
-def create_tool(db: Session, tool: ToolCreate) -> Tool:
+def create_tool(db: AsyncSession, tool: ToolCreate) -> Tool:
     """Creates a new tool"""
     try:
         db_tool = Tool(**tool.model_dump())
@@ -85,7 +85,7 @@ def create_tool(db: Session, tool: ToolCreate) -> Tool:
         )
 
 
-def update_tool(db: Session, tool_id: uuid.UUID, tool: ToolCreate) -> Optional[Tool]:
+def update_tool(db: AsyncSession, tool_id: uuid.UUID, tool: ToolCreate) -> Optional[Tool]:
     """Updates an existing tool"""
     try:
         db_tool = get_tool(db, tool_id)
@@ -108,7 +108,7 @@ def update_tool(db: Session, tool_id: uuid.UUID, tool: ToolCreate) -> Optional[T
         )
 
 
-def delete_tool(db: Session, tool_id: uuid.UUID) -> bool:
+def delete_tool(db: AsyncSession, tool_id: uuid.UUID) -> bool:
     """Remove a tool"""
     try:
         db_tool = get_tool(db, tool_id)

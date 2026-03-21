@@ -29,7 +29,7 @@
 
 from src.models.models import ApiKey
 from src.utils.crypto import encrypt_api_key, decrypt_api_key
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 import uuid
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_api_key(
-    db: Session, client_id: uuid.UUID, name: str, provider: str, key_value: str
+    db: AsyncSession, client_id: uuid.UUID, name: str, provider: str, key_value: str
 ) -> ApiKey:
     """Create a new encrypted API key"""
     try:
@@ -71,7 +71,7 @@ def create_api_key(
         )
 
 
-def get_api_key(db: Session, key_id: uuid.UUID) -> Optional[ApiKey]:
+def get_api_key(db: AsyncSession, key_id: uuid.UUID) -> Optional[ApiKey]:
     """Get an API key by ID"""
     try:
         return db.query(ApiKey).filter(ApiKey.id == key_id).first()
@@ -84,7 +84,7 @@ def get_api_key(db: Session, key_id: uuid.UUID) -> Optional[ApiKey]:
 
 
 def get_api_keys_by_client(
-    db: Session,
+    db: AsyncSession,
     client_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
@@ -125,7 +125,7 @@ def get_api_keys_by_client(
         )
 
 
-def get_decrypted_api_key(db: Session, key_id: uuid.UUID) -> Optional[str]:
+def get_decrypted_api_key(db: AsyncSession, key_id: uuid.UUID) -> Optional[str]:
     """Get the decrypted value of an API key"""
     try:
         key = get_api_key(db, key_id)
@@ -139,7 +139,7 @@ def get_decrypted_api_key(db: Session, key_id: uuid.UUID) -> Optional[str]:
 
 
 def update_api_key(
-    db: Session,
+    db: AsyncSession,
     key_id: uuid.UUID,
     name: Optional[str] = None,
     provider: Optional[str] = None,
@@ -174,7 +174,7 @@ def update_api_key(
         )
 
 
-def delete_api_key(db: Session, key_id: uuid.UUID) -> bool:
+def delete_api_key(db: AsyncSession, key_id: uuid.UUID) -> bool:
     """Remove an API key (soft delete)"""
     try:
         key = get_api_key(db, key_id)

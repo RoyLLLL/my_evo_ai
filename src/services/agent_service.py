@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from src.models.models import Agent, AgentFolder, ApiKey
@@ -64,7 +64,7 @@ def _convert_uuid_to_str(obj):
         return obj
 
 
-def validate_sub_agents(db: Session, sub_agents: List[Union[uuid.UUID, str]]) -> bool:
+def validate_sub_agents(db: AsyncSession, sub_agents: List[Union[uuid.UUID, str]]) -> bool:
     """Validate if all sub-agents exist"""
     logger.info(f"Validating sub-agents: {sub_agents}")
 
@@ -87,7 +87,7 @@ def validate_sub_agents(db: Session, sub_agents: List[Union[uuid.UUID, str]]) ->
     return True
 
 
-def get_agent(db: Session, agent_id: Union[uuid.UUID, str]) -> Optional[Agent]:
+def get_agent(db: AsyncSession, agent_id: Union[uuid.UUID, str]) -> Optional[Agent]:
     """Search for an agent by ID"""
     try:
         # Convert to UUID if it's a string
@@ -121,7 +121,7 @@ def get_agent(db: Session, agent_id: Union[uuid.UUID, str]) -> Optional[Agent]:
 
 
 def get_agents_by_client(
-    db: Session,
+    db: AsyncSession,
     client_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
@@ -172,7 +172,7 @@ def get_agents_by_client(
         )
 
 
-async def create_agent(db: Session, agent: AgentCreate) -> Agent:
+async def create_agent(db: AsyncSession, agent: AgentCreate) -> Agent:
     """Create a new agent"""
     try:
         # Special handling for a2a type agents
@@ -473,7 +473,7 @@ async def create_agent(db: Session, agent: AgentCreate) -> Agent:
 
 
 async def update_agent(
-    db: Session, agent_id: uuid.UUID, agent_data: Dict[str, Any]
+    db: AsyncSession, agent_id: uuid.UUID, agent_data: Dict[str, Any]
 ) -> Agent:
     """Update an existing agent"""
     try:
@@ -781,7 +781,7 @@ async def update_agent(
         raise HTTPException(status_code=500, detail=f"Error updating agent: {str(e)}")
 
 
-def delete_agent(db: Session, agent_id: uuid.UUID) -> bool:
+def delete_agent(db: AsyncSession, agent_id: uuid.UUID) -> bool:
     """Remove an agent from the database"""
     try:
         db_agent = get_agent(db, agent_id)
@@ -802,7 +802,7 @@ def delete_agent(db: Session, agent_id: uuid.UUID) -> bool:
         )
 
 
-def activate_agent(db: Session, agent_id: uuid.UUID) -> bool:
+def activate_agent(db: AsyncSession, agent_id: uuid.UUID) -> bool:
     """Reactivate an agent"""
     try:
         db_agent = get_agent(db, agent_id)
@@ -823,7 +823,7 @@ def activate_agent(db: Session, agent_id: uuid.UUID) -> bool:
 
 # Functions for agent folders
 def create_agent_folder(
-    db: Session, client_id: uuid.UUID, name: str, description: Optional[str] = None
+    db: AsyncSession, client_id: uuid.UUID, name: str, description: Optional[str] = None
 ) -> AgentFolder:
     """Create a new folder to organize agents"""
     try:
@@ -842,7 +842,7 @@ def create_agent_folder(
         )
 
 
-def get_agent_folder(db: Session, folder_id: uuid.UUID) -> Optional[AgentFolder]:
+def get_agent_folder(db: AsyncSession, folder_id: uuid.UUID) -> Optional[AgentFolder]:
     """Search for an agent folder by ID"""
     try:
         return db.query(AgentFolder).filter(AgentFolder.id == folder_id).first()
@@ -855,7 +855,7 @@ def get_agent_folder(db: Session, folder_id: uuid.UUID) -> Optional[AgentFolder]
 
 
 def get_agent_folders_by_client(
-    db: Session, client_id: uuid.UUID, skip: int = 0, limit: int = 100
+    db: AsyncSession, client_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> List[AgentFolder]:
     """List the agent folders of a client"""
     try:
@@ -875,7 +875,7 @@ def get_agent_folders_by_client(
 
 
 def update_agent_folder(
-    db: Session,
+    db: AsyncSession,
     folder_id: uuid.UUID,
     name: Optional[str] = None,
     description: Optional[str] = None,
@@ -904,7 +904,7 @@ def update_agent_folder(
         )
 
 
-def delete_agent_folder(db: Session, folder_id: uuid.UUID) -> bool:
+def delete_agent_folder(db: AsyncSession, folder_id: uuid.UUID) -> bool:
     """Remove an agent folder and unassign the agents"""
     try:
         folder = get_agent_folder(db, folder_id)
@@ -931,7 +931,7 @@ def delete_agent_folder(db: Session, folder_id: uuid.UUID) -> bool:
 
 
 def assign_agent_to_folder(
-    db: Session, agent_id: uuid.UUID, folder_id: Optional[uuid.UUID]
+    db: AsyncSession, agent_id: uuid.UUID, folder_id: Optional[uuid.UUID]
 ) -> Optional[Agent]:
     """Assign an agent to a folder (or remove from folder if folder_id is None)"""
     try:
@@ -978,7 +978,7 @@ def assign_agent_to_folder(
 
 
 def get_agents_by_folder(
-    db: Session, folder_id: uuid.UUID, skip: int = 0, limit: int = 100
+    db: AsyncSession, folder_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> List[Agent]:
     """List the agents of a specific folder"""
     try:
@@ -998,7 +998,7 @@ def get_agents_by_folder(
 
 
 async def import_agents_from_json(
-    db: Session,
+    db: AsyncSession,
     agents_data: Dict[str, Any],
     client_id: uuid.UUID,
     folder_id: Optional[uuid.UUID] = None,
@@ -1007,7 +1007,7 @@ async def import_agents_from_json(
     Import one or more agents from JSON data
 
     Args:
-        db (Session): Database session
+        db (AsyncSession): Database AsyncSession
         agents_data (Dict[str, Any]): JSON data containing agent definitions
         client_id (uuid.UUID): Client ID to associate with the imported agents
         folder_id (Optional[uuid.UUID]): Optional folder ID to assign agents to

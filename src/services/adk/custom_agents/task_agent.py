@@ -34,7 +34,7 @@ from google.adk.events import Event
 from google.genai.types import Content, Part
 from src.services.agent_service import get_agent
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import AsyncGenerator, List
 
@@ -50,13 +50,13 @@ class TaskAgent(BaseAgent):
 
     # Field declarations for Pydantic
     tasks: List[AgentTask]
-    db: Session
+    db: AsyncSession
 
     def __init__(
         self,
         name: str,
         tasks: List[AgentTask],
-        db: Session,
+        db: AsyncSession,
         sub_agents: List[BaseAgent] = [],
         **kwargs,
     ):
@@ -66,7 +66,7 @@ class TaskAgent(BaseAgent):
         Args:
             name: Agent name
             tasks: List of tasks to be executed
-            db: Database session
+            db: Database AsyncSession
             sub_agents: List of sub-agents to be executed after the Task agent
         """
         # Initialize base class

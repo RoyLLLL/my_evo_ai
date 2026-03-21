@@ -26,23 +26,26 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 """
-
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 from src.config.settings import settings
+import re
 
-POSTGRES_CONNECTION_STRING = settings.POSTGRES_CONNECTION_STRING
+def _make_async_url(url: str) -> str:
+    """Convert postgresql:// or postgres:// to postgresql+asyncpg://"""
+    url = re.sub(r'^postgres://', 'postgresql+asyncpg://', url)
+    url = re.sub(r'^postgresql://', 'postgresql+asyncpg://', url)
+    return url
 
-engine = create_engine(POSTGRES_CONNECTION_STRING)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+POSTGRES_CONNECTION_STRING = _make_async_url(settings.POSTGRES_CONNECTION_STRING)
+
+engine = create_async_engine(POSTGRES_CONNECTION_STRING, echo=False)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session

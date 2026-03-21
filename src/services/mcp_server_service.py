@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from src.models.models import MCPServer
@@ -40,7 +40,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_mcp_server(db: Session, server_id: uuid.UUID) -> Optional[MCPServer]:
+def get_mcp_server(db: AsyncSession, server_id: uuid.UUID) -> Optional[MCPServer]:
     """Search for an MCP server by ID"""
     try:
         server = db.query(MCPServer).filter(MCPServer.id == server_id).first()
@@ -56,7 +56,7 @@ def get_mcp_server(db: Session, server_id: uuid.UUID) -> Optional[MCPServer]:
         )
 
 
-def get_mcp_servers(db: Session, skip: int = 0, limit: int = 100) -> List[MCPServer]:
+def get_mcp_servers(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[MCPServer]:
     """Search for all MCP servers with pagination"""
     try:
         return db.query(MCPServer).offset(skip).limit(limit).all()
@@ -68,7 +68,7 @@ def get_mcp_servers(db: Session, skip: int = 0, limit: int = 100) -> List[MCPSer
         )
 
 
-def create_mcp_server(db: Session, server: MCPServerCreate) -> MCPServer:
+def create_mcp_server(db: AsyncSession, server: MCPServerCreate) -> MCPServer:
     """Create a new MCP server"""
     try:
         # Convert tools to JSON serializable format
@@ -99,7 +99,7 @@ def create_mcp_server(db: Session, server: MCPServerCreate) -> MCPServer:
 
 
 def update_mcp_server(
-    db: Session, server_id: uuid.UUID, server: MCPServerCreate
+    db: AsyncSession, server_id: uuid.UUID, server: MCPServerCreate
 ) -> Optional[MCPServer]:
     """Update an existing MCP server"""
     try:
@@ -127,7 +127,7 @@ def update_mcp_server(
         )
 
 
-def delete_mcp_server(db: Session, server_id: uuid.UUID) -> bool:
+def delete_mcp_server(db: AsyncSession, server_id: uuid.UUID) -> bool:
     """Remove an MCP server"""
     try:
         db_server = get_mcp_server(db, server_id)

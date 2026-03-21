@@ -29,7 +29,7 @@
 
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from src.config.database import get_db
@@ -55,7 +55,7 @@ router = APIRouter(
 @router.get("/audit-logs", response_model=List[AuditLogResponse])
 async def read_audit_logs(
     filters: AuditLogFilter = Depends(),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -87,7 +87,7 @@ async def read_audit_logs(
 async def read_admin_users(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -109,7 +109,7 @@ async def read_admin_users(
 async def create_new_admin_user(
     user_data: AdminUserCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -158,7 +158,7 @@ async def create_new_admin_user(
 async def deactivate_admin_user(
     user_id: uuid.UUID,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """

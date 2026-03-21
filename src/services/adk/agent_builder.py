@@ -45,7 +45,7 @@ from src.services.adk.super_agent.super_agent import build_super_agent
 from src.services.adk.super_agent.event_bus import EventBus
 from src.services.apikey_service import get_decrypted_api_key
 from src.config.settings import settings
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import AsyncExitStack
 from google.adk.tools import load_memory
 
@@ -58,7 +58,7 @@ logger = setup_logger(__name__)
 
 
 class AgentBuilder:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.custom_tool_builder = CustomToolBuilder()
         self.mcp_service = MCPService()

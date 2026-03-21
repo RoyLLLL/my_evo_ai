@@ -38,7 +38,7 @@ from fastapi import (
     WebSocketDisconnect,
     Header,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import settings
 from src.config.database import get_db
 from src.core.jwt_middleware import (
@@ -76,7 +76,7 @@ async def get_agent_by_api_key(
     agent_id: str,
     api_key: Optional[str] = Header(None, alias="x-api-key"),
     authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Flexible authentication for chat routes, allowing JWT or API key"""
     if authorization:
@@ -130,7 +130,7 @@ async def websocket_chat(
     websocket: WebSocket,
     agent_id: str,
     external_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         # Accept the connection
@@ -276,20 +276,20 @@ async def chat(
     agent_id: str,
     external_id: str,
     _=Depends(get_agent_by_api_key),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
-        if settings.AI_ENGINE == "adk":
-            final_response = await run_agent_adk(
-                agent_id,
-                external_id,
-                request.message,
-                session_service,
-                artifacts_service,
-                memory_service,
-                db,
-                files=request.files,
-            )
+
+        final_response = await run_agent_adk(
+            agent_id,
+            external_id,
+            request.message,
+            session_service,
+            artifacts_service,
+            memory_service,
+            db,
+            files=request.files,
+        )
         return {
             "response": final_response["final_response"],
             "message_history": final_response["message_history"],

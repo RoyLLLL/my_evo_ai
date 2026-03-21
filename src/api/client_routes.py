@@ -29,7 +29,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from typing import List
 import uuid
@@ -69,7 +69,7 @@ router = APIRouter(
 @router.post("", response_model=Client, status_code=status.HTTP_201_CREATED)
 async def create_user(
     registration: ClientRegistration,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -104,7 +104,7 @@ async def create_user(
 async def read_clients(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # If admin, can see all clients
@@ -123,7 +123,7 @@ async def read_clients(
 @router.get("/{client_id}", response_model=Client)
 async def read_client(
     client_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Verify if the user has access to this client's data
@@ -141,7 +141,7 @@ async def read_client(
 async def update_client(
     client_id: uuid.UUID,
     client: ClientCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Verify if the user has access to this client's data
@@ -158,7 +158,7 @@ async def update_client(
 @router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_client(
     client_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can delete clients
@@ -173,7 +173,7 @@ async def delete_client(
 @router.post("/{client_id}/impersonate", response_model=TokenResponse)
 async def impersonate_client(
     client_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     """
@@ -181,7 +181,7 @@ async def impersonate_client(
 
     Args:
         client_id: ID of the client to impersonate
-        db: Database session
+        db: Database AsyncSession
         payload: JWT payload of the administrator
 
     Returns:

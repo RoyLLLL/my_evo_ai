@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from src.models.models import User, Client
 from src.schemas.user import UserCreate
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_user(
-    db: Session,
+    db: AsyncSession,
     user_data: UserCreate,
     is_admin: bool = False,
     client_id: Optional[uuid.UUID] = None,
@@ -135,7 +135,7 @@ def create_user(
         return None, f"Unexpected error: {str(e)}"
 
 
-def verify_email(db: Session, token: str) -> Tuple[bool, str]:
+def verify_email(db: AsyncSession, token: str) -> Tuple[bool, str]:
     """
     Verify the user's email using the provided token
 
@@ -192,7 +192,7 @@ def verify_email(db: Session, token: str) -> Tuple[bool, str]:
         return False, f"Unexpected error: {str(e)}"
 
 
-def resend_verification(db: Session, email: str) -> Tuple[bool, str]:
+def resend_verification(db: AsyncSession, email: str) -> Tuple[bool, str]:
     """
     Resend the verification email
 
@@ -248,7 +248,7 @@ def resend_verification(db: Session, email: str) -> Tuple[bool, str]:
         return False, f"Unexpected error: {str(e)}"
 
 
-def forgot_password(db: Session, email: str) -> Tuple[bool, str]:
+def forgot_password(db: AsyncSession, email: str) -> Tuple[bool, str]:
     """
     Initiates the password recovery process
 
@@ -303,7 +303,7 @@ def forgot_password(db: Session, email: str) -> Tuple[bool, str]:
         return False, f"Unexpected error: {str(e)}"
 
 
-def reset_password(db: Session, token: str, new_password: str) -> Tuple[bool, str]:
+def reset_password(db: AsyncSession, token: str, new_password: str) -> Tuple[bool, str]:
     """
     Resets the user's password using the provided token
 
@@ -356,7 +356,7 @@ def reset_password(db: Session, token: str, new_password: str) -> Tuple[bool, st
         return False, f"Unexpected error: {str(e)}"
 
 
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
+def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     """
     Searches for a user by email
 
@@ -375,7 +375,7 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 
 
 def authenticate_user(
-    db: Session, email: str, password: str
+    db: AsyncSession, email: str, password: str
 ) -> Tuple[Optional[User], str]:
     """
     Authenticates a user with email and password
@@ -400,7 +400,7 @@ def authenticate_user(
     return user, "success"
 
 
-def get_admin_users(db: Session, skip: int = 0, limit: int = 100):
+def get_admin_users(db: AsyncSession, skip: int = 0, limit: int = 100):
     """
     Lists the admin users
 
@@ -426,7 +426,7 @@ def get_admin_users(db: Session, skip: int = 0, limit: int = 100):
         return []
 
 
-def create_admin_user(db: Session, user_data: UserCreate) -> Tuple[Optional[User], str]:
+def create_admin_user(db: AsyncSession, user_data: UserCreate) -> Tuple[Optional[User], str]:
     """
     Creates a new admin user
 
@@ -440,7 +440,7 @@ def create_admin_user(db: Session, user_data: UserCreate) -> Tuple[Optional[User
     return create_user(db, user_data, is_admin=True, auto_verify=True)
 
 
-def deactivate_user(db: Session, user_id: uuid.UUID) -> Tuple[bool, str]:
+def deactivate_user(db: AsyncSession, user_id: uuid.UUID) -> Tuple[bool, str]:
     """
     Deactivates a user (does not delete, only marks as inactive)
 
@@ -477,7 +477,7 @@ def deactivate_user(db: Session, user_id: uuid.UUID) -> Tuple[bool, str]:
 
 
 def change_password(
-    db: Session, user_id: uuid.UUID, current_password: str, new_password: str
+    db: AsyncSession, user_id: uuid.UUID, current_password: str, new_password: str
 ) -> Tuple[bool, str]:
     """
     Changes the password of an authenticated user

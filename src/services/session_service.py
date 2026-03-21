@@ -28,7 +28,7 @@
 """
 
 from google.adk.sessions import DatabaseSessionService
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.models import Session as SessionModel
 from google.adk.events import Event
 from google.adk.sessions import Session as SessionADK
@@ -59,7 +59,7 @@ def _session_to_dict(session: SessionModel):
 
 
 def get_sessions_by_client(
-    db: Session,
+    db: AsyncSession,
     client_id: uuid.UUID,
 ) -> List[dict]:
     """Search for sessions of a client with pagination"""
@@ -80,7 +80,7 @@ def get_sessions_by_client(
 
 
 def get_sessions_by_agent(
-    db: Session,
+    db: AsyncSession,
     agent_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,

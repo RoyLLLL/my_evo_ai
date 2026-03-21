@@ -32,7 +32,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from src.config.settings import settings
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from uuid import UUID
 import logging
@@ -86,7 +86,7 @@ async def get_jwt_token(token: str = Depends(oauth2_scheme)) -> dict:
 
 async def verify_user_client(
     payload: dict = Depends(get_jwt_token),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     required_client_id: UUID = None,
 ) -> bool:
     """

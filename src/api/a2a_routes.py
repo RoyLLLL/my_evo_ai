@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Depends, Header, Request, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.sql import text
@@ -58,7 +58,7 @@ router = APIRouter(
 )
 
 
-async def verify_api_key(db: Session, x_api_key: str) -> bool:
+async def verify_api_key(db: AsyncSession, x_api_key: str) -> bool:
     """Verifies API key against agent config."""
     if not x_api_key:
         raise HTTPException(status_code=401, detail="API key not provided")
@@ -399,7 +399,7 @@ async def process_a2a_message(
     agent_id: uuid.UUID,
     request: Request,
     x_api_key: str = Header(None, alias="x-api-key"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Process A2A messages according to official specification.
@@ -500,7 +500,7 @@ async def process_a2a_message(
 
 
 async def handle_message_send(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle message/send according to A2A spec."""
 
@@ -722,7 +722,7 @@ async def handle_message_send(
 
 
 async def handle_message_stream(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> EventSourceResponse:
     """Handle message/stream according to A2A spec."""
 
@@ -836,7 +836,7 @@ async def handle_message_stream(
 @router.get("/{agent_id}/.well-known/agent.json")
 async def get_agent_card(
     agent_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get agent card according to A2A specification."""
 
@@ -966,7 +966,7 @@ async def list_agent_sessions(
     agent_id: uuid.UUID,
     external_id: str,
     x_api_key: str = Header(None, alias="x-api-key"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """List sessions for an agent and external_id (A2A extension)."""
 
@@ -1016,7 +1016,7 @@ async def get_session_history(
     agent_id: uuid.UUID,
     session_id: str,
     x_api_key: str = Header(None, alias="x-api-key"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     limit: int = 50,
 ):
     """Get conversation history for a specific session (A2A extension)."""
@@ -1061,7 +1061,7 @@ async def get_conversation_history(
     agent_id: uuid.UUID,
     request: Request,
     x_api_key: str = Header(None, alias="x-api-key"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get conversation history according to A2A specification.
@@ -1378,7 +1378,7 @@ async def send_push_notification(
 
 # Task management functions (A2A spec section 7.3-7.7)
 async def handle_tasks_get(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle tasks/get according to A2A spec section 7.3."""
     logger.info(f"🔍 Processing tasks/get for agent {agent_id}")
@@ -1429,7 +1429,7 @@ async def handle_tasks_get(
 
 
 async def handle_tasks_cancel(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle tasks/cancel according to A2A spec section 7.4."""
     logger.info(f"🛑 Processing tasks/cancel for agent {agent_id}")
@@ -1482,7 +1482,7 @@ task_push_configs = {}  # In-memory storage for demo - use database in productio
 
 
 async def handle_tasks_push_notification_config_set(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle tasks/pushNotificationConfig/set according to A2A spec section 7.5."""
     logger.info(f"🔔 Processing tasks/pushNotificationConfig/set for agent {agent_id}")
@@ -1560,7 +1560,7 @@ async def handle_tasks_push_notification_config_set(
 
 
 async def handle_tasks_push_notification_config_get(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle tasks/pushNotificationConfig/get according to A2A spec section 7.6."""
     logger.info(f"🔍 Processing tasks/pushNotificationConfig/get for agent {agent_id}")
@@ -1623,7 +1623,7 @@ async def handle_tasks_push_notification_config_get(
 
 
 async def handle_tasks_resubscribe(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle tasks/resubscribe according to A2A spec section 7.7."""
     logger.info(f"🔄 Processing tasks/resubscribe for agent {agent_id}")
@@ -1680,7 +1680,7 @@ async def handle_tasks_resubscribe(
 
 
 async def handle_agent_authenticated_extended_card(
-    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: Session
+    agent_id: uuid.UUID, params: Dict[str, Any], request_id: str, db: AsyncSession
 ) -> JSONResponse:
     """Handle agent/authenticatedExtendedCard according to A2A spec section 7.8."""
     logger.info(f"🛡️ Processing agent/authenticatedExtendedCard for agent {agent_id}")

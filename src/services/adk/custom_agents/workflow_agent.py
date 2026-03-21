@@ -41,7 +41,7 @@ import uuid
 
 from src.services.agent_service import get_agent
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from langgraph.graph import StateGraph, END
 
@@ -68,7 +68,7 @@ class WorkflowAgent(BaseAgent):
     # Field declarations for Pydantic
     flow_json: Dict[str, Any]
     timeout: int
-    db: Session
+    db: AsyncSession
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class WorkflowAgent(BaseAgent):
         flow_json: Dict[str, Any],
         timeout: int = 300,
         sub_agents: List[BaseAgent] = [],
-        db: Session = None,
+        db: AsyncSession = None,
         **kwargs,
     ):
         """

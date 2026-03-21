@@ -32,7 +32,7 @@ import asyncio
 from typing import Dict, Any, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -88,7 +88,7 @@ class EvoAIAgentExecutor:
     the methods expected by the SDK: message/send and message/stream
     """
 
-    def __init__(self, db: Session, agent_id: UUID):
+    def __init__(self, db: AsyncSession, agent_id: UUID):
         self.db = db
         self.agent_id = agent_id
 
@@ -230,7 +230,7 @@ class EvoAISDKService:
     Main service that creates and manages A2A servers using the official SDK.
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.servers: Dict[str, Any] = {}
 
@@ -370,7 +370,7 @@ class EvoAISDKService:
 
 
 # Utility function to create SDK server easily
-def create_a2a_sdk_server(db: Session, agent_id: UUID) -> Optional[Any]:
+def create_a2a_sdk_server(db: AsyncSession, agent_id: UUID) -> Optional[Any]:
     """
     Utility function to create A2A server using SDK.
     """

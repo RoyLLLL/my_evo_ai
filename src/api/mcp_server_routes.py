@@ -29,7 +29,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.database import get_db
 from typing import List
 import uuid
@@ -59,7 +59,7 @@ router = APIRouter(
 @router.post("/", response_model=MCPServer, status_code=status.HTTP_201_CREATED)
 async def create_mcp_server(
     server: MCPServerCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can create MCP servers
@@ -72,7 +72,7 @@ async def create_mcp_server(
 async def read_mcp_servers(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # All authenticated users can list MCP servers
@@ -82,7 +82,7 @@ async def read_mcp_servers(
 @router.get("/{server_id}", response_model=MCPServer)
 async def read_mcp_server(
     server_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # All authenticated users can view MCP server details
@@ -98,7 +98,7 @@ async def read_mcp_server(
 async def update_mcp_server(
     server_id: uuid.UUID,
     server: MCPServerCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can update MCP servers
@@ -115,7 +115,7 @@ async def update_mcp_server(
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_mcp_server(
     server_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     payload: dict = Depends(get_jwt_token),
 ):
     # Only administrators can delete MCP servers

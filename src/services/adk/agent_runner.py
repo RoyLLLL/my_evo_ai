@@ -310,7 +310,9 @@ def convert_sets(obj):
     else:
         return obj
 
+from langsmith import traceable
 
+@traceable(name="run_agent_stream")
 async def run_agent_stream(
     agent_id: str,
     external_id: str,

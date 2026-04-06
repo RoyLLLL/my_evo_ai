@@ -1,0 +1,201 @@
+from google.adk.agents import BaseAgent
+from google.adk.agents.invocation_context import InvocationContext
+from google.adk.events import Event
+from google.genai.types import Content, Part
+
+from typing import AsyncGenerator, List, Dict, Any, Optional
+import json
+import os
+
+from src.schemas.a2a_types import AgentCard
+from src.utils.a2a_enhanced_client import (
+    EnhancedA2AClient,
+    A2AClientConfig,
+    A2AImplementation,
+    A2AResponse,
+)
+
+from uuid import uuid4
+
+
+class A2ACustomAgent(BaseAgent):
+
+    agent_card_url: str
+    agent_card: Optional[AgentCard]
+    timeout: int
+    base_url: str
+    api_key: Optional[str]
+    preferred_implementation: A2AImplementation
+
+    # NEW
+    output_key: str
+    debug: bool
+
+    def __init__(
+        self,
+        name: str,
+        agent_card_url: str,
+        timeout: int = 300,
+        api_key: Optional[str] = None,
+        preferred_implementation: A2AImplementation = A2AImplementation.AUTO,
+        sub_agents: List[BaseAgent] = [],
+        output_key: str = "a2a_result",
+        debug: bool = False,
+        **kwargs,
+    ):
+
+        base_url = agent_card_url
+
+        if "/.well-known/agent.json" in base_url:
+            base_url = base_url.split("/.well-known/agent.json")[0]
+
+        if "/api/v1/a2a/" in base_url:
+            base_url = base_url.split("/api/v1/a2a/")[0]
+
+        elif "/api/v1/a2a-sdk/" in base_url:
+            base_url = base_url.split("/api/v1/a2a-sdk/")[0]
+
+        if not api_key:
+            api_key = os.getenv("EVO_AI_API_KEY") or os.getenv("API_KEY")
+
+        super().__init__(
+            name=name,
+            agent_card_url=agent_card_url,
+            base_url=base_url,
+            agent_card=None,
+            timeout=timeout,
+            api_key=api_key,
+            preferred_implementation=preferred_implementation,
+            sub_agents=sub_agents,
+            output_key=output_key,
+            debug=debug,
+            **kwargs,
+        )
+
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
+
+        try:
+
+            agent_card = await self.fetch_agent_card()
+
+            user_message = self._extract_user_message(ctx)
+
+            if not user_message:
+
+                yield Event(
+                    author=self.name,
+                    content=Content(
+                        role="agent",
+                        parts=[Part(text="No user message found")],
+                    ),
+                )
+                return
+
+            agent_id = self._extract_agent_id_from_url(self.agent_card_url)
+
+            config = A2AClientConfig(
+                base_url=self.base_url,
+                api_key=self.api_key or "default-key",
+                implementation=self.preferred_implementation,
+                timeout=self.timeout,
+            )
+
+            aggregated_text = ""
+
+            async with EnhancedA2AClient(config) as client:
+
+                session_id = (
+                    str(ctx.session.id)
+                    if ctx.session and hasattr(ctx.session, "id")
+                    else str(uuid4())
+                )
+
+                supports_streaming = self._agent_supports_streaming(agent_card)
+
+                if supports_streaming:
+
+                    async for event in self._process_streaming_response(
+                        client, agent_id, user_message, session_id
+                    ):
+
+                        text = self._extract_text_from_event(event)
+
+                        if text:
+                            aggregated_text += text + "\n"
+
+                        yield event
+
+                else:
+
+                    async for event in self._process_regular_response(
+                        client, agent_id, user_message, session_id
+                    ):
+
+                        text = self._extract_text_from_event(event)
+
+                        if text:
+                            aggregated_text += text + "\n"
+
+                        yield event
+
+            # NEW: 写入 shared state
+
+            if aggregated_text:
+
+                if self.debug:
+                    print("\n[A2A aggregated output]")
+                    print(aggregated_text)
+
+                if ctx.session:
+
+                    ctx.session.state[self.output_key] = aggregated_text
+
+                # 追加到 conversation history
+                event = Event(
+                    author=self.name,
+                    content=Content(
+                        role="agent",
+                        parts=[Part(text=aggregated_text)],
+                    ),
+                )
+
+                yield event
+
+            # run sub agents
+
+            for sub_agent in self.sub_agents:
+
+                async for event in sub_agent.run_async(ctx):
+                    yield event
+
+        except Exception as e:
+
+            yield Event(
+                author=self.name,
+                content=Content(
+                    role="agent",
+                    parts=[Part(text=str(e))],
+                ),
+            )
+
+    def _extract_text_from_event(self, event: Event) -> str:
+
+        try:
+
+            if not event.content:
+                return ""
+
+            texts = []
+
+            for p in event.content.parts:
+
+                if hasattr(p, "text") and p.text:
+                    texts.append(p.text)
+
+            return "\n".join(texts)
+
+        except:
+
+            return ""

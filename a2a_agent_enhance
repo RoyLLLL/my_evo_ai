@@ -3,8 +3,7 @@ from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 from google.genai.types import Content, Part
 
-from typing import AsyncGenerator, List, Dict, Any, Optional
-import json
+from typing import AsyncGenerator, List, Optional
 import os
 
 from src.schemas.a2a_types import AgentCard
@@ -39,7 +38,7 @@ class A2ACustomAgent(BaseAgent):
         api_key: Optional[str] = None,
         preferred_implementation: A2AImplementation = A2AImplementation.AUTO,
         sub_agents: List[BaseAgent] = [],
-        output_key: str = "a2a_result",
+        output_key: str = "remote_agent_result",
         debug: bool = False,
         **kwargs,
     ):
@@ -72,9 +71,61 @@ class A2ACustomAgent(BaseAgent):
             **kwargs,
         )
 
+    async def fetch_agent_card(self) -> AgentCard:
+
+        if self.agent_card:
+            return self.agent_card
+
+        agent_id = self._extract_agent_id_from_url(self.agent_card_url)
+
+        config = A2AClientConfig(
+            base_url=self.base_url,
+            api_key=self.api_key or "default-key",
+            implementation=self.preferred_implementation,
+            timeout=self.timeout,
+        )
+
+        async with EnhancedA2AClient(config) as client:
+
+            response = await client.get_agent_card(agent_id)
+
+            if response.success:
+
+                self.agent_card = AgentCard(**response.data)
+
+                return self.agent_card
+
+        # fallback card
+        self.agent_card = AgentCard(
+            name="A2A Agent",
+            description="External A2A Agent",
+            url=self.agent_card_url,
+            version="1.0.0",
+            capabilities={"streaming": True},
+            defaultInputModes=["text"],
+            defaultOutputModes=["text"],
+            skills=[],
+        )
+
+        return self.agent_card
+
+    def _extract_agent_id_from_url(self, url: str) -> str:
+
+        if "/api/v1/a2a/" in url:
+
+            return url.split("/api/v1/a2a/")[1].split("/")[0]
+
+        if "/api/v1/a2a-sdk/" in url:
+
+            return url.split("/api/v1/a2a-sdk/")[1].split("/")[0]
+
+        return "unknown-agent"
+
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
+
+        aggregated_text = ""
 
         try:
 
@@ -91,6 +142,7 @@ class A2ACustomAgent(BaseAgent):
                         parts=[Part(text="No user message found")],
                     ),
                 )
+
                 return
 
             agent_id = self._extract_agent_id_from_url(self.agent_card_url)
@@ -101,8 +153,6 @@ class A2ACustomAgent(BaseAgent):
                 implementation=self.preferred_implementation,
                 timeout=self.timeout,
             )
-
-            aggregated_text = ""
 
             async with EnhancedA2AClient(config) as client:
 
@@ -117,7 +167,10 @@ class A2ACustomAgent(BaseAgent):
                 if supports_streaming:
 
                     async for event in self._process_streaming_response(
-                        client, agent_id, user_message, session_id
+                        client,
+                        agent_id,
+                        user_message,
+                        session_id,
                     ):
 
                         text = self._extract_text_from_event(event)
@@ -130,7 +183,10 @@ class A2ACustomAgent(BaseAgent):
                 else:
 
                     async for event in self._process_regular_response(
-                        client, agent_id, user_message, session_id
+                        client,
+                        agent_id,
+                        user_message,
+                        session_id,
                     ):
 
                         text = self._extract_text_from_event(event)
@@ -140,34 +196,45 @@ class A2ACustomAgent(BaseAgent):
 
                         yield event
 
-            # NEW: 写入 shared state
+            # =========================
+            # 写入 shared state
+            # =========================
 
-            if aggregated_text:
+            if aggregated_text.strip():
 
-                if self.debug:
-                    print("\n[A2A aggregated output]")
-                    print(aggregated_text)
+                key = self.output_key or "remote_agent_result"
 
                 if ctx.session:
 
-                    ctx.session.state[self.output_key] = aggregated_text
+                    if ctx.session.state is None:
 
-                # 追加到 conversation history
-                event = Event(
+                        ctx.session.state = {}
+
+                    ctx.session.state[key] = aggregated_text.strip()
+
+                # 写入 conversation history
+                yield Event(
                     author=self.name,
                     content=Content(
                         role="agent",
-                        parts=[Part(text=aggregated_text)],
+                        parts=[Part(text=aggregated_text.strip())],
                     ),
                 )
 
-                yield event
+                if self.debug:
 
-            # run sub agents
+                    print("\n[A2A RESULT SAVED]")
+                    print("key =", key)
+                    print(aggregated_text)
+
+            # =========================
+            # 执行 sub agents
+            # =========================
 
             for sub_agent in self.sub_agents:
 
                 async for event in sub_agent.run_async(ctx):
+
                     yield event
 
         except Exception as e:
@@ -180,19 +247,221 @@ class A2ACustomAgent(BaseAgent):
                 ),
             )
 
+    def _extract_user_message(self, ctx: InvocationContext) -> Optional[str]:
+
+        if ctx.session and ctx.session.events:
+
+            for event in reversed(ctx.session.events):
+
+                if event.author == "user":
+
+                    if event.content and event.content.parts:
+
+                        return event.content.parts[0].text
+
+        return None
+
+    def _agent_supports_streaming(self, agent_card: AgentCard) -> bool:
+
+        try:
+
+            if hasattr(agent_card, "capabilities"):
+
+                if isinstance(agent_card.capabilities, dict):
+
+                    return agent_card.capabilities.get("streaming", False)
+
+                return getattr(agent_card.capabilities, "streaming", False)
+
+        except:
+
+            pass
+
+        return False
+
+    async def _process_streaming_response(
+
+        self,
+
+        client: EnhancedA2AClient,
+
+        agent_id: str,
+
+        message: str,
+
+        session_id: str,
+
+    ) -> AsyncGenerator[Event, None]:
+
+        async for response_chunk in client.send_message_streaming(
+
+            agent_id=agent_id,
+
+            message=message,
+
+            session_id=session_id,
+
+        ):
+
+            if response_chunk.success:
+
+                event = self._create_event_from_response(response_chunk)
+
+                if event:
+
+                    yield event
+
+            else:
+
+                yield Event(
+
+                    author=self.name,
+
+                    content=Content(
+
+                        role="agent",
+
+                        parts=[Part(text=response_chunk.error)],
+
+                    ),
+
+                )
+
+    async def _process_regular_response(
+
+        self,
+
+        client: EnhancedA2AClient,
+
+        agent_id: str,
+
+        message: str,
+
+        session_id: str,
+
+    ) -> AsyncGenerator[Event, None]:
+
+        response = await client.send_message(
+
+            agent_id=agent_id,
+
+            message=message,
+
+            session_id=session_id,
+
+        )
+
+        if response.success:
+
+            event = self._create_event_from_response(response)
+
+            if event:
+
+                yield event
+
+        else:
+
+            yield Event(
+
+                author=self.name,
+
+                content=Content(
+
+                    role="agent",
+
+                    parts=[Part(text=response.error)],
+
+                ),
+
+            )
+
+    def _create_event_from_response(
+
+        self,
+
+        response: A2AResponse,
+
+    ) -> Optional[Event]:
+
+        try:
+
+            data = response.data
+
+            parts = []
+
+            if isinstance(data, dict):
+
+                if "result" in data:
+
+                    result = data["result"]
+
+                    if isinstance(result, dict):
+
+                        status = result.get("status")
+
+                        if status:
+
+                            message = status.get("message")
+
+                            if message:
+
+                                for p in message.get("parts", []):
+
+                                    if p.get("type") == "text":
+
+                                        parts.append(
+
+                                            Part(text=p.get("text", ""))
+
+                                        )
+
+            if parts:
+
+                return Event(
+
+                    author=self.name,
+
+                    content=Content(
+
+                        role="agent",
+
+                        parts=parts,
+
+                    ),
+
+                )
+
+        except Exception as e:
+
+            return Event(
+
+                author=self.name,
+
+                content=Content(
+
+                    role="agent",
+
+                    parts=[Part(text=str(e))],
+
+                ),
+
+            )
+
+        return None
+
     def _extract_text_from_event(self, event: Event) -> str:
 
         try:
 
-            if not event.content:
-                return ""
-
             texts = []
 
-            for p in event.content.parts:
+            if event.content:
 
-                if hasattr(p, "text") and p.text:
-                    texts.append(p.text)
+                for p in event.content.parts:
+
+                    if hasattr(p, "text"):
+
+                        texts.append(p.text)
 
             return "\n".join(texts)
 

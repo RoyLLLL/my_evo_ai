@@ -1,0 +1,139 @@
+{
+  "inputs": {
+    "messages": [
+      [
+        {
+          "id": [
+            "langchain",
+            "schema",
+            "messages",
+            "HumanMessage"
+          ],
+          "kwargs": {
+            "content": "Generate a concise title (max 6 words) for this conversation.\nUser: Compare AWS, Azure, GCP, Alibaba Cloud, use task tool do the search parallel\nAssistant: \n\nReturn ONLY the title, no quotes, no explanation.",
+            "type": "human"
+          },
+          "lc": 1,
+          "type": "constructor"
+        }
+      ]
+    ]
+  },
+  "outputs": {
+    "generations": [
+      [
+        {
+          "generation_info": {
+            "finish_reason": "stop",
+            "model_name": "deepseek-chat",
+            "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache_new_kvcache_20260410"
+          },
+          "message": {
+            "id": [
+              "langchain",
+              "schema",
+              "messages",
+              "AIMessage"
+            ],
+            "kwargs": {
+              "content": "Parallel Cloud Provider Comparison Search",
+              "id": "lc_run--019d8a19-5fa1-7f61-8332-60cf2d47d1ff",
+              "invalid_tool_calls": [],
+              "response_metadata": {
+                "finish_reason": "stop",
+                "model_name": "deepseek-chat",
+                "model_provider": "deepseek",
+                "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache_new_kvcache_20260410"
+              },
+              "tool_calls": [],
+              "type": "ai",
+              "usage_metadata": {
+                "input_token_details": {
+                  "cache_read": 0
+                },
+                "input_tokens": 54,
+                "output_token_details": {},
+                "output_tokens": 5,
+                "total_tokens": 59
+              }
+            },
+            "lc": 1,
+            "type": "constructor"
+          },
+          "text": "Parallel Cloud Provider Comparison Search",
+          "type": "ChatGeneration"
+        }
+      ]
+    ],
+    "llm_output": null,
+    "run": null,
+    "type": "LLMResult"
+  },
+  "metadata": {
+    "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com",
+    "LANGSMITH_LANGGRAPH_API_VARIANT": "local_dev",
+    "LANGSMITH_PROJECT": "my_evo_ai",
+    "LANGSMITH_TRACING": "true",
+    "agent_name": "default",
+    "assistant_id": "bee7d354-5df5-5f26-a978-10ea053f620d",
+    "checkpoint_ns": "TitleMiddleware.after_model:bb726e3c-1d54-f9b8-fb0d-9b71d345ea61",
+    "created_by": "system",
+    "graph_id": "lead_agent",
+    "is_plan_mode": false,
+    "langgraph_api_url": "http://127.0.0.1:2024",
+    "langgraph_api_version": "0.7.65",
+    "langgraph_auth_user_id": "",
+    "langgraph_checkpoint_ns": "TitleMiddleware.after_model:bb726e3c-1d54-f9b8-fb0d-9b71d345ea61",
+    "langgraph_host": "self-hosted",
+    "langgraph_node": "TitleMiddleware.after_model",
+    "langgraph_path": [
+      "__pregel_pull",
+      "TitleMiddleware.after_model"
+    ],
+    "langgraph_plan": "enterprise",
+    "langgraph_request_id": "9c7c99fc-78ec-4b02-a216-7e1978bb9011",
+    "langgraph_step": 7,
+    "langgraph_triggers": [
+      "branch:to:TitleMiddleware.after_model"
+    ],
+    "langgraph_version": "1.0.9",
+    "ls_max_tokens": 8192,
+    "ls_model_name": "deepseek-reasoner",
+    "ls_model_type": "chat",
+    "ls_provider": "deepseek",
+    "ls_run_depth": 0,
+    "ls_temperature": null,
+    "model_name": "deepseek-v3",
+    "reasoning_effort": null,
+    "revision_id": "481494b-dirty",
+    "run_attempt": 1,
+    "run_id": "019d8a19-0a97-7402-9ccd-f7523406fe78",
+    "subagent_enabled": false,
+    "thinking_enabled": true,
+    "thread_id": "516fb693-6b58-45b1-a09e-2e368f6ba8bc",
+    "usage_metadata": {
+      "input_token_details": {
+        "cache_read": 0
+      },
+      "input_tokens": 54,
+      "output_token_details": {},
+      "output_tokens": 5,
+      "total_tokens": 59
+    },
+    "user_id": ""
+  },
+  "langsmith": {
+    "organization": {
+      "name": "Personal",
+      "id": "f60d7aac-89cf-4240-bf41-8df931618c1d"
+    },
+    "workspace": {
+      "name": "Personal",
+      "id": "fe380e97-b478-5375-a4b0-24fe98490039"
+    },
+    "tracing_project": {
+      "id": "464ba997-c088-437a-a61c-503b9eefc498",
+      "name": "my_evo_ai"
+    }
+  }
+}

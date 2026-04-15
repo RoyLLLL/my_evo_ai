@@ -1,0 +1,365 @@
+好，这里我给你挑**真正“开源 + 明确使用 event-driven 的 AI / agent 框架”**，并且直接告诉你它们**是怎么用事件驱动的（不是泛 listing）**。
+
+我只选最有代表性的 4 个👇（从“最接近你”到“基础设施级”）
+
+---
+
+# 🧠 1️⃣ Solace Agent Mesh
+
+👉 **最贴近你当前需求（multi-agent + event-driven）**
+
+---
+
+## ✅ 它是什么
+
+* 专门为 AI agent 设计
+* 明确：**event-driven multi-agent system**
+
+👉 GitHub 直接写：
+
+> “event-driven framework for multi-agent AI systems” ([GitHub][1])
+
+---
+
+## 🧠 它怎么用 event
+
+### 核心模型：
+
+```text
+Agent → publish(event)
+Agent → subscribe(event)
+```
+
+---
+
+## 📦 真实 flow
+
+```text
+user.input
+   ↓
+planner agent
+   ↓ emit
+task.created
+   ↓
+executor agent
+   ↓ emit
+task.completed
+   ↓
+critic agent
+```
+
+---
+
+## 🔥 关键点
+
+* 没有 orchestration controller
+* 没有 agent 调用 agent
+* 全部靠 event
+
+---
+
+## 👉 对你意义
+
+这就是你 Evo AI 的**目标形态**
+
+---
+
+# 🧠 2️⃣ AgenticGoKit
+
+👉 **当前最接近“生产级 agent framework”的开源实现之一**
+
+---
+
+## ✅ 特点
+
+* 多 agent
+* streaming-first
+* **event-driven**
+* MCP / tool / memory
+
+👉 官方说明：
+
+> “event-driven… multi-agent workflows” ([GitHub][2])
+
+---
+
+## 🧠 它怎么做 event-driven
+
+它内部是：
+
+```text
+event → workflow step → event
+```
+
+---
+
+## 📦 示例逻辑
+
+```text
+task.requested
+   ↓
+planner
+   ↓
+task.planned
+   ↓
+executor
+   ↓
+task.done
+```
+
+---
+
+## 🔥 和你现在的区别
+
+|         | 你现在      | 它       |
+| ------- | -------- | ------- |
+| 控制      | workflow | event   |
+| agent通信 | 调用       | message |
+| 扩展      | 改代码      | 加订阅     |
+
+---
+
+## 👉 对你意义
+
+👉 这是**“ADK + event bus”的正确终态参考**
+
+---
+
+# 🧠 3️⃣ Agently
+
+👉 **Python 生态里最像“event-driven agent”的框架**
+
+---
+
+## ✅ 特点
+
+* 明确支持：TriggerFlow（事件触发）
+* agent workflow = event trigger
+
+👉 GitHub 描述：
+
+> “Use Event-Driven Flow *TriggerFlow* to manage GenAI logic” ([GitHub][3])
+
+---
+
+## 🧠 它的核心机制
+
+不是：
+
+```python
+agent.run()
+```
+
+而是：
+
+```python
+@on_event("data.ready")
+def agent():
+    ...
+```
+
+---
+
+## 📦 示例 flow
+
+```text
+data.uploaded
+   ↓
+parser
+   ↓
+data.extracted
+   ↓
+analysis agent
+```
+
+---
+
+## 🔥 关键点
+
+👉 workflow 是“隐式的”
+👉 由 event 自动驱动
+
+---
+
+## 👉 对你意义
+
+👉 这是你可以**最容易参考并改造到 Python + ADK 的**
+
+---
+
+# 🧠 4️⃣ Inngest
+
+👉 **不是 AI 专用，但很多 AI agent 在用**
+
+---
+
+## ✅ 它是什么
+
+* event-driven workflow engine
+* serverless + queue + step function
+
+👉 GitHub：
+
+> “event-driven workflows” ([GitHub][1])
+
+---
+
+## 🧠 它怎么用
+
+```ts
+export const fn = inngest.createFunction(
+  { name: "AI pipeline" },
+  { event: "data.received" },
+  async ({ event }) => {
+    // do LLM call
+  }
+);
+```
+
+---
+
+## 📦 flow
+
+```text
+data.received
+   ↓
+function A
+   ↓
+event emitted
+   ↓
+function B
+```
+
+---
+
+## 🔥 关键点
+
+👉 每个 step = event-triggered function
+👉 和 agent 非常像
+
+---
+
+## 👉 对你意义
+
+👉 可以直接替代你现在的 orchestration 层
+
+---
+
+# 🧠 5️⃣ （补充）Kafka Agent SDK（真实工程趋势）
+
+👉 比如社区项目（calfkit）
+
+---
+
+## 核心思想
+
+> “agents communicate asynchronously through Kafka” ([Reddit][4])
+
+---
+
+## 架构
+
+```text
+LLM Agent
+Tool Agent
+Router Agent
+
+全部通过 Kafka 通信
+```
+
+---
+
+## 🔥 关键点
+
+* agent = microservice
+* 完全解耦
+* 可独立扩缩容
+
+---
+
+# 六、给你一个“本质对比总结”
+
+---
+
+## ❌ 传统 agent 框架（你现在）
+
+```text
+LangChain / ADK / Evo AI：
+
+controller → agent → agent
+```
+
+---
+
+## ✅ event-driven 框架（上面这些）
+
+```text
+event → agent → event → agent
+```
+
+---
+
+# 七、你可以直接抄的“标准模型”
+
+综合这些开源框架，其实已经收敛成一个模式：
+
+---
+
+## ⭐ 标准 Event-driven Agent Pattern
+
+```text
+1. 所有 agent = subscriber
+2. 所有通信 = event
+3. 所有状态 = event log
+4. 没有 central orchestrator
+```
+
+---
+
+## ⭐ 标准代码模式
+
+```python
+@subscribe("task.created")
+async def planner(event):
+    publish("task.planned")
+
+@subscribe("task.planned")
+async def executor(event):
+    publish("task.done")
+```
+
+---
+
+# 八、给你一句最关键的话（总结）
+
+👉 这些开源框架本质都在做一件事：
+
+# 👉 **把“agent 调用关系”变成“事件流网络”**
+
+---
+
+# 九、如果你要下一步（建议）
+
+你现在最该做的不是再看框架，而是：
+
+👉 选一个对标：
+
+* 想简单 👉 学 Agently
+* 想工业级 👉 学 AgenticGoKit
+* 想 multi-agent 👉 学 Solace Agent Mesh
+
+---
+
+👉 然后：
+
+👉 我可以帮你把 **Evo AI → 对标其中一个框架逐步重构（代码级）**
+
+你只需要说：
+
+👉 “对标 AgenticGoKit 重构” 或
+👉 “对标 Solace mesh 重构” 🚀
+
+[1]: https://github.com/topics/event-driven-architecture?utm_source=chatgpt.com "event-driven-architecture · GitHub Topics · GitHub"
+[2]: https://github.com/kunalkushwaha的/AgenticGoKit?utm_source=chatgpt.com "GitHub - AgenticGoKit/AgenticGoKit: Open-source Agentic AI framework in Go for building, orchestrating, and deploying intelligent agents. LLM-agnostic, event-driven, with multi-agent workflows, MCP tool discovery, and production-grade observability."
+[3]: https://github.com/topics/agent-based-framework?utm_source=chatgpt.com "agent-based-framework · GitHub Topics · GitHub"
+[4]: https://www.reddit.com/r/OpenSourceeAI/comments/1qy3w26/im_unemployed_and_have_too_much_time_so_i_built/?utm_source=chatgpt.com "I'm unemployed and have too much time so I built an open source SDK to build event-driven, distributed agents on Kafka"

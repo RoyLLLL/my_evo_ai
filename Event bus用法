@@ -1,0 +1,403 @@
+好，这一段我直接给你一个**“可落地的 ADK + Event-driven 架构实现”**，不是 toy，而是**接近生产级设计**（你可以直接改 Evo AI 用）。
+
+---
+
+# 一、先说结论（很关键）
+
+👉 **ADK 本身不是 event-driven 框架**
+👉 但它提供了：
+
+* multi-agent
+* A2A
+* streaming / async
+
+👉 你可以在它之上“实现 message bus”
+
+ADK 的定位是：
+
+👉 **agent runtime + orchestration framework** ([Agent Development Kit][1])
+
+---
+
+# 二、我们要实现的目标架构
+
+## 🎯 Event-driven Agent System（基于 ADK）
+
+```text
+User → EventBus → PlannerAgent
+                     ↓
+                plan.created
+                     ↓
+            SearchAgent / ToolAgent
+                     ↓
+                search.completed
+         ↓             ↓             ↓
+   Summarizer     Extractor     Critic
+         ↓             ↓             ↓
+                 report.ready
+                     ↓
+                 ReportAgent
+```
+
+👉 核心：**ADK 只负责 agent，事件流你自己控制**
+
+---
+
+# 三、项目结构（建议你直接照这个来）
+
+```text
+my_agent_system/
+├── bus/
+│   └── event_bus.py
+├── events/
+│   └── schemas.py
+├── agents/
+│   ├── planner.py
+│   ├── search.py
+│   ├── summarizer.py
+│   └── report.py
+├── main.py
+```
+
+---
+
+# 四、核心实现（重点）
+
+---
+
+## 1️⃣ Event Bus（你系统的核心）
+
+```python
+# bus/event_bus.py
+
+from collections import defaultdict
+import asyncio
+
+class EventBus:
+    def __init__(self):
+        self.subscribers = defaultdict(list)
+
+    def subscribe(self, event_type, handler):
+        self.subscribers[event_type].append(handler)
+
+    async def publish(self, event):
+        if event["type"] in self.subscribers:
+            await asyncio.gather(*[
+                handler(event) for handler in self.subscribers[event["type"]]
+            ])
+```
+
+👉 这里已经是：
+
+* async
+* 并行 fan-out
+
+---
+
+## 2️⃣ Event Schema（必须有）
+
+```python
+# events/schemas.py
+
+def create_event(type, payload, trace_id=None):
+    return {
+        "type": type,
+        "trace_id": trace_id,
+        "payload": payload
+    }
+```
+
+👉 后面你可以加：
+
+* version
+* retry_count
+* timestamp
+
+---
+
+# 五、用 ADK 写 Agent（关键部分）
+
+---
+
+## 3️⃣ Planner Agent（ADK）
+
+```python
+# agents/planner.py
+
+from google.adk.agents.llm_agent import Agent
+
+planner_llm = Agent(
+    name="planner",
+    model="gemini-2.0-flash",
+    instruction="Break user query into search tasks"
+)
+
+async def planner_handler(event, bus):
+    query = event["payload"]["query"]
+
+    result = planner_llm.run(query)
+
+    plan = ["search:web", "search:papers"]  # 简化
+
+    await bus.publish({
+        "type": "plan.created",
+        "payload": {
+            "query": query,
+            "plan": plan
+        }
+    })
+```
+
+👉 重点：
+
+* ADK agent 负责 reasoning
+* 你自己负责 event emit
+
+---
+
+## 4️⃣ Search Agent
+
+```python
+# agents/search.py
+
+from google.adk.tools import google_search
+
+async def search_handler(event, bus):
+    plan = event["payload"]["plan"]
+
+    results = []
+    for step in plan:
+        results.append({"content": f"result for {step}"})
+
+    await bus.publish({
+        "type": "search.completed",
+        "payload": {
+            "results": results
+        }
+    })
+```
+
+---
+
+## 5️⃣ Summarizer Agent（并行）
+
+```python
+# agents/summarizer.py
+
+from google.adk.agents.llm_agent import Agent
+
+summarizer_llm = Agent(
+    name="summarizer",
+    model="gemini-2.0-flash",
+    instruction="Summarize search results"
+)
+
+async def summarizer_handler(event, bus):
+    results = event["payload"]["results"]
+
+    summary = summarizer_llm.run(str(results))
+
+    await bus.publish({
+        "type": "summary.completed",
+        "payload": {
+            "summary": summary
+        }
+    })
+```
+
+---
+
+## 6️⃣ Report Agent（聚合）
+
+```python
+# agents/report.py
+
+STATE = {}
+
+async def report_handler(event, bus):
+    STATE["summary"] = event["payload"]["summary"]
+
+    if "summary" in STATE:
+        print("FINAL REPORT:", STATE["summary"])
+```
+
+---
+
+# 六、把所有东西连起来
+
+```python
+# main.py
+
+import asyncio
+from bus.event_bus import EventBus
+from agents.planner import planner_handler
+from agents.search import search_handler
+from agents.summarizer import summarizer_handler
+from agents.report import report_handler
+
+bus = EventBus()
+
+# 注册事件
+bus.subscribe("user.query", lambda e: planner_handler(e, bus))
+bus.subscribe("plan.created", lambda e: search_handler(e, bus))
+bus.subscribe("search.completed", lambda e: summarizer_handler(e, bus))
+bus.subscribe("summary.completed", lambda e: report_handler(e, bus))
+
+async def main():
+    await bus.publish({
+        "type": "user.query",
+        "payload": {"query": "Analyze OpenAI models"}
+    })
+
+asyncio.run(main())
+```
+
+---
+
+# 七、这个实现已经具备什么能力？
+
+## ✅ 1. 并行执行
+
+```python
+await asyncio.gather(...)
+```
+
+👉 Summarizer / Critic 可以同时跑
+
+---
+
+## ✅ 2. 完全解耦
+
+* agent 不互相 import
+* 不互相调用
+
+---
+
+## ✅ 3. 可扩展
+
+你可以直接加：
+
+```python
+bus.subscribe("search.completed", critic_agent)
+bus.subscribe("search.completed", fact_check_agent)
+```
+
+---
+
+# 八、如何升级成“生产级”
+
+---
+
+## 1️⃣ 替换 EventBus
+
+```text
+内存 → Redis Streams → Kafka
+```
+
+---
+
+## 2️⃣ 加 trace（必须）
+
+```json
+{
+  "trace_id": "xxx",
+  "parent_event": "yyy"
+}
+```
+
+👉 用于 debug
+
+---
+
+## 3️⃣ 加 state store
+
+```text
+Redis / Postgres
+```
+
+👉 因为：
+
+👉 EDA = 无状态
+
+---
+
+## 4️⃣ 用 ADK A2A 做跨服务 agent
+
+ADK 原生支持：
+
+👉 agent-to-agent 通信 ([GitHub][2])
+
+你可以：
+
+```text
+event → remote agent → event
+```
+
+---
+
+## 5️⃣ Streaming = event（高级）
+
+ADK streaming 本质：
+
+👉 event stream ([Google GitHub][3])
+
+---
+
+# 九、你现在该怎么落地（建议路径）
+
+如果你在做 Evo AI：
+
+---
+
+## ✅ Step 1（现在做）
+
+👉 用我上面这套：
+
+* 内存 EventBus
+* ADK Agent
+
+---
+
+## ✅ Step 2
+
+👉 把 EventBus 换成 Redis
+
+---
+
+## ✅ Step 3
+
+👉 引入：
+
+* tracing（OpenTelemetry）
+* event log
+
+---
+
+## ✅ Step 4（终态）
+
+```text
+Kafka + ADK + A2A + Streaming
+```
+
+---
+
+# 十、最关键的一句话（你要记住）
+
+👉 **ADK = agent runtime**
+👉 **Event Bus = system architecture**
+
+---
+
+# 如果你想继续深入
+
+我可以帮你下一步直接升级到：
+
+👉 **Kafka + Schema Registry + ADK + 多Agent协作（完整生产架构图 + 代码）**
+
+或者：
+
+👉 帮你把你现在 Evo AI 的代码**重构成 event-driven（逐文件改）**
+
+[1]: https://adk.dev/?utm_source=chatgpt.com "Agent Development Kit (ADK) - Agent Development Kit (ADK)"
+[2]: https://github.com/google/adk-python?utm_source=chatgpt.com "GitHub - google/adk-python: An open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control."
+[3]: https://google.github.io/adk-docs/get-started/streaming/quickstart-streaming/?utm_source=chatgpt.com "Python - Agent Development Kit"
